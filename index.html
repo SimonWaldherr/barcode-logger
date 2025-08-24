@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0b0c">
+  <meta name="description" content="Barcode-Scanner & Logger – Tabs (Scan/Liste/Export/Konfig), CSV, Share (Mail), Standort, PWA, Theme Auto/Light/Dark.">
+  <title>Barcode-Logger</title>
+
+  <!-- PWA (optional, falls vorhanden) -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png" sizes="192x192">
+  <link rel="icon" href="icon-512.png" sizes="512x512">
+
+  <!-- ZXing: sofort laden, damit BrowserMultiFormatReader garantiert verfügbar ist -->
+  <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f7f7f8; --elev: #ffffff; --text:#0b0b0c; --muted:#5b5d63; --border:#e7e7ea; --card:#ffffff;
+      --primary:#3b82f6; --danger:#ef4444; --ok:#16a34a; --shadow:0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.06);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0b0b0c; --elev:#121214; --text:#f3f3f4; --muted:#9ca3af; --border:#222226; --card:#1a1a1c;
+        --primary:#3b82f6; --danger:#ef4444; --ok:#22c55e; --shadow:0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.45);
+      }
+    }
+    body[data-theme="light"]{--bg:#f7f7f8;--elev:#ffffff;--text:#0b0b0c;--muted:#5b5d63;--border:#e7e7ea;--card:#ffffff;}
+    body[data-theme="dark"]{--bg:#0b0b0c;--elev:#121214;--text:#f3f3f4;--muted:#9ca3af;--border:#222226;--card:#1a1a1c;}
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    a{color:var(--primary);text-decoration:none}
+    [hidden]{display:none !important}
+    .app{min-height:100%;display:grid;grid-template-rows:auto 1fr auto}
+
+    .appbar{position:sticky;top:0;z-index:20;background:var(--elev);box-shadow:var(--shadow);border-bottom:1px solid var(--border)}
+    .appbar-inner{display:flex;align-items:center;gap:12px;padding:10px 12px;max-width:1200px;margin:0 auto}
+    .brand{font-weight:800;letter-spacing:.2px}
+    .spacer{flex:1}
+    .seg{display:inline-flex;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
+    .seg button{border:0;background:transparent;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:700}
+    .seg button[aria-selected="true"]{background:var(--primary);color:white}
+    .seg button:focus-visible{outline:2px solid var(--primary)}
+
+    .theme{display:inline-flex;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-left:8px}
+    .theme button{border:0;background:transparent;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:700}
+    .theme button[aria-pressed="true"]{background:var(--card);color:var(--text)}
+
+    .content{max-width:1200px;margin:0 auto;width:100%}
+    .panel{padding:14px}
+    .grid{display:grid;gap:12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+
+    .viewer{position:relative;display:grid;place-items:center;overflow:hidden;border-radius:14px}
+    video{width:100%;height:54vh;object-fit:cover;background:#000;border-radius:12px}
+    .frame{position:absolute;inset:8% 10%;border-radius:18px;outline:3px solid rgba(255,255,255,.18);box-shadow:0 0 0 9999px rgba(0,0,0,.25) inset;pointer-events:none}
+    .torch{position:absolute;right:12px;bottom:12px;z-index:5;padding:10px 12px;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:700}
+    .torch[disabled]{opacity:.5}
+
+    .controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .btn{height:46px;border-radius:12px;border:1px solid var(--border);background:var(--elev);color:var(--text);font-weight:800;cursor:pointer}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:white}
+    .btn.danger{background:var(--danger);border-color:var(--danger);color:white}
+    .btn.ghost{background:var(--elev)}
+
+    .toggles{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .switch{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:12px;background:var(--elev);color:var(--text)}
+
+    .list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+    .row{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:grid;gap:4px}
+    .row .top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .code{font-weight:900;word-break:break-word}
+    .meta{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+
+    .export-actions{display:flex;gap:12px;flex-wrap:wrap}
+    .fmt-grid{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+    .fmt-item{display:flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--elev);padding:8px 10px;border-radius:12px}
+
+    .footer{padding:14px;color:var(--muted);text-align:center;border-top:1px solid var(--border)}
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="appbar">
+      <div class="appbar-inner" role="tablist" aria-label="Hauptmodi">
+        <div class="brand">📦 Barcode-Logger</div>
+        <div class="seg" id="modeTabs">
+          <button id="tab-scan" role="tab" aria-selected="true" aria-controls="panel-scan">Scan</button>
+          <button id="tab-list" role="tab" aria-selected="false" aria-controls="panel-list">Liste</button>
+          <button id="tab-export" role="tab" aria-selected="false" aria-controls="panel-export">Export</button>
+          <button id="tab-config" role="tab" aria-selected="false" aria-controls="panel-config">Konfig</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="theme" aria-label="Darstellung">
+          <button id="theme-auto" aria-pressed="true" title="Auto">Auto</button>
+          <button id="theme-light" aria-pressed="false" title="Hell">☀️</button>
+          <button id="theme-dark" aria-pressed="false" title="Dunkel">🌙</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section id="panel-scan" class="panel grid" role="tabpanel" aria-labelledby="tab-scan">
+        <div class="card viewer">
+          <video id="preview" playsinline muted aria-label="Live-Kamera"></video>
+          <div class="frame" aria-hidden="true"></div>
+          <button id="torchBtn" class="torch" disabled aria-pressed="false" title="Taschenlampe">🔦</button>
+        </div>
+
+        <div class="grid">
+          <div class="card toggles">
+            <label class="switch"><input type="checkbox" id="trackLocation"> Standort mitschreiben</label>
+            <label class="switch"><input type="checkbox" id="allowDuplicates"> Dubletten erlauben</label>
+            <label class="switch"><input type="checkbox" id="beepOn" checked> Akustisches Feedback</label>
+            <span id="supportNote" style="margin-left:auto" aria-live="polite"></span>
+          </div>
+          <div class="controls">
+            <button id="startBtn" class="btn primary">Start</button>
+            <button id="stopBtn" class="btn ghost">Stopp</button>
+            <button id="clearBtn" class="btn danger">Liste leeren</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-list" class="panel grid" role="tabpanel" aria-labelledby="tab-list" hidden>
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <strong>Gescannte Codes</strong>
+            <span id="count" aria-live="polite">(0)</span>
+            <input id="filterInput" type="search" placeholder="Liste filtern…" style="margin-left:auto;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)">
+          </div>
+        </div>
+        <div class="card">
+          <ul id="scanList" class="list" aria-live="polite" aria-relevant="additions"></ul>
+        </div>
+      </section>
+
+      <section id="panel-export" class="panel grid" role="tabpanel" aria-labelledby="tab-export" hidden>
+        <div class="card export-actions">
+          <button id="exportCsvBtn" class="btn ghost">CSV exportieren</button>
+          <button id="shareCsvBtn" class="btn ghost">Per Mail/Share senden</button>
+          <button id="backupJsonBtn" class="btn ghost">Backup (JSON)</button>
+          <button id="restoreJsonBtn" class="btn ghost">Wiederherstellen (JSON)</button>
+          <button id="clearAllBtn" class="btn danger">Alles löschen</button>
+        </div>
+        <div class="card" id="statsCard"></div>
+        <div class="card" id="previewCard"><em>CSV Vorschau erscheint nach erstem Scan.</em></div>
+      </section>
+
+      <section id="panel-config" class="panel grid" role="tabpanel" aria-labelledby="tab-config" hidden>
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <strong>Erkannte Formate</strong>
+            <span id="supportedFormats" class="meta" style="margin-left:auto"></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="fmt-grid" id="fmtGrid"></div>
+        </div>
+        <div class="card" style="display:flex;gap:12px;flex-wrap:wrap">
+          <button id="applyFormatsBtn" class="btn primary">Übernehmen</button>
+          <button id="selectAllBtn" class="btn ghost">Alle</button>
+          <button id="selectNoneBtn" class="btn ghost">Keine</button>
+          <span class="meta">Tipp: Änderungen wirken beim nächsten Scan-Start. „Übernehmen“ stoppt/ startet bei Bedarf automatisch.</span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">© Barcode-Logger • PWA • ZXing • Auto/Light/Dark</footer>
+  </div>
+
+  <script>
+  (function () {
+    const { BrowserMultiFormatReader, NotFoundException, DecodeHintType, BarcodeFormat } = ZXing;
+
+    /* ---------- PERSISTENZ ---------- */
+    const LS_KEY_SCANS = 'barcode_logger_scans_v3';
+    const LS_KEY_THEME = 'barcode_logger_theme';
+    const LS_KEY_FORMATS = 'barcode_logger_formats';
+    let scans = loadScans();
+
+    function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY_SCANS))||[]; }catch{ return []; } }
+    function saveScans(){ try{ localStorage.setItem(LS_KEY_SCANS, JSON.stringify(scans)); }catch{} }
+
+    /* ---------- DOM ---------- */
+    const $ = id => document.getElementById(id);
+
+    // Tabs & Theme
+    const tabs = {
+      scan: $('tab-scan'),
+      list: $('tab-list'),
+      export: $('tab-export'),
+      config: $('tab-config'),
+    };
+    const panels = {
+      scan: $('panel-scan'),
+      list: $('panel-list'),
+      export: $('panel-export'),
+      config: $('panel-config'),
+    };
+    const themeBtns = {
+      auto: $('theme-auto'),
+      light: $('theme-light'),
+      dark: $('theme-dark'),
+    };
+
+    // Scan panel
+    const video   = $('preview');
+    const scanList= $('scanList');
+    const countEl = $('count');
+    const startBtn= $('startBtn');
+    const stopBtn = $('stopBtn');
+    const clearBtn= $('clearBtn');
+    const torchBtn= $('torchBtn');
+    const trackLocationEl = $('trackLocation');
+    const allowDuplicatesEl = $('allowDuplicates');
+    const beepOnEl = $('beepOn');
+    const supportNote = $('supportNote');
+
+    // List / Export
+    const filterInput = $('filterInput');
+    const exportCsvBtn = $('exportCsvBtn');
+    const shareCsvBtn  = $('shareCsvBtn');
+    const backupJsonBtn= $('backupJsonBtn');
+    const restoreJsonBtn=$('restoreJsonBtn');
+    const clearAllBtn  = $('clearAllBtn');
+    const statsCard    = $('statsCard');
+    const previewCard  = $('previewCard');
+
+    // Config
+    const supportedFormatsEl = $('supportedFormats');
+    const fmtGrid = $('fmtGrid');
+    const applyFormatsBtn = $('applyFormatsBtn');
+    const selectAllBtn = $('selectAllBtn');
+    const selectNoneBtn = $('selectNoneBtn');
+
+    /* ---------- STATE ---------- */
+    let running = false;
+    let reader = null;
+    let hints = null;
+    let selectedFormats = loadSelectedFormats();
+    let lastText = null, lastAt = 0;
+    let torchTrack = null, torchOn = false;
+    let seen = new Set(scans.map(s => s.code));
+    let geoWatchId = null;
+    let lastCoords = null;
+
+    /* ---------- THEME ---------- */
+    initTheme();
+    function initTheme(){
+      const pref = localStorage.getItem(LS_KEY_THEME) || 'auto';
+      applyTheme(pref);
+      themeBtns.auto.addEventListener('click', ()=>applyTheme('auto'));
+      themeBtns.light.addEventListener('click', ()=>applyTheme('light'));
+      themeBtns.dark.addEventListener('click', ()=>applyTheme('dark'));
+    }
+    function applyTheme(mode){
+      if(mode==='auto'){ document.body.removeAttribute('data-theme'); }
+      else{ document.body.setAttribute('data-theme', mode); }
+      for (const k in themeBtns) themeBtns[k].setAttribute('aria-pressed', String(k===mode));
+      localStorage.setItem(LS_KEY_THEME, mode);
+    }
+
+    /* ---------- TABS ---------- */
+    initTabs();
+    function initTabs(){
+      const map = [
+        [tabs.scan, panels.scan],
+        [tabs.list, panels.list],
+        [tabs.export, panels.export],
+        [tabs.config, panels.config],
+      ];
+      map.forEach(([tab,panel])=>{
+        tab.addEventListener('click', ()=>activateTab(tab.id.replace('tab-','')));
+      });
+      // Keyboard: ← →
+      $('modeTabs').addEventListener('keydown', (e)=>{
+        if(e.key!=='ArrowRight' && e.key!=='ArrowLeft') return;
+        e.preventDefault();
+        const order = ['scan','list','export','config'];
+        const current = order.findIndex(k => tabs[k].getAttribute('aria-selected')==='true');
+        const next = e.key==='ArrowRight' ? (current+1)%order.length : (current-1+order.length)%order.length;
+        tabs[order[next]].focus();
+        activateTab(order[next]);
+      });
+      activateTab('scan');
+    }
+    function activateTab(name){
+      const all = ['scan','list','export','config'];
+      all.forEach(k=>{
+        tabs[k].setAttribute('aria-selected', String(k===name));
+        panels[k].hidden = (k!==name);
+      });
+      if(name==='list'){ renderList(); }
+      if(name==='export'){ renderStats(); renderPreview(); }
+      if(name==='config'){ renderFormatsUI(); }
+    }
+
+    /* ---------- ZXING / HINTS ---------- */
+    const ALL_FORMAT_KEYS = [
+      'QR_CODE','EAN_13','EAN_8','CODE_128','CODE_39','CODE_93','ITF','UPC_A','UPC_E',
+      'DATA_MATRIX','AZTEC','PDF_417','RSS_14','RSS_EXPANDED','MAXICODE'
+    ].filter(k => BarcodeFormat[k] !== undefined);
+
+    function loadSelectedFormats(){
+      try{
+        const stored = JSON.parse(localStorage.getItem(LS_KEY_FORMATS));
+        if(Array.isArray(stored) && stored.length) return stored.filter(k=>ALL_FORMAT_KEYS.includes(k));
+      }catch{}
+      return ['QR_CODE','EAN_13','EAN_8','CODE_128','CODE_39','ITF','UPC_A','UPC_E','DATA_MATRIX','AZTEC','PDF_417']; // sinnvolle Defaults
+    }
+    function saveSelectedFormats(){
+      localStorage.setItem(LS_KEY_FORMATS, JSON.stringify(selectedFormats));
+    }
+    function buildHints(){
+      const map = new Map();
+      const fmts = selectedFormats.map(k => BarcodeFormat[k]);
+      if (fmts.length) map.set(DecodeHintType.POSSIBLE_FORMATS, fmts);
+      // Duplikat-Check übernimmt unsere App-Logik (nicht ZXing)
+      return map;
+    }
+
+    /* ---------- LIST RENDERING ---------- */
+    function fmtTime(ts){ return new Date(ts).toLocaleString([], {hour12:false}); }
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+    function updateCount(){ countEl.textContent = `(${scans.length})`; }
+
+    function appendRow(entry, prepend=false){
+      const li = document.createElement('li');
+      li.className = 'row';
+      li.dataset.code = entry.code;
+      const loc = (entry.lat!=null && entry.lon!=null) ? `📍 ${entry.lat.toFixed(5)}, ${entry.lon.toFixed(5)}` : '';
+      li.innerHTML = `
+        <div class="top">
+          <div class="code">${escapeHtml(entry.code)}</div>
+          <div class="meta">${escapeHtml(entry.format||'')}</div>
+        </div>
+        <div class="meta">
+          <span>⏱ ${fmtTime(entry.ts)}</span>
+          ${loc ? `<span>${loc}</span>` : ''}
+        </div>`;
+      prepend ? scanList.prepend(li) : scanList.appendChild(li);
+    }
+
+    function renderList(){
+      scanList.innerHTML = '';
+      const q = (filterInput.value||'').toLowerCase().trim();
+      scans
+        .filter(e => !q || e.code.toLowerCase().includes(q))
+        .slice().reverse()
+        .forEach(e => appendRow(e));
+      updateCount();
+    }
+
+    /* ---------- AUDIO FEEDBACK ---------- */
+    const audioCtx = (window.AudioContext||window.webkitAudioContext) ? new (window.AudioContext||window.webkitAudioContext)() : null;
+    function beep(ms=80, freq=880){
+      if(!audioCtx || !beepOnEl.checked) return;
+      try{
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.frequency.value = freq; o.type='square';
+        g.gain.value = 0.08;
+        o.start(); setTimeout(()=>{ try{o.stop();}catch{} }, ms);
+      }catch{}
+      navigator.vibrate?.(40);
+    }
+
+    /* ---------- GEO ---------- */
+    function startGeoWatch(){
+      if (geoWatchId!=null) return;
+      if (!trackLocationEl.checked || !navigator.geolocation) return;
+      geoWatchId = navigator.geolocation.watchPosition(
+        pos => { lastCoords = {lat: pos.coords.latitude, lon: pos.coords.longitude}; },
+        _err => { lastCoords = null; },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 8000 }
+      );
+    }
+    function stopGeoWatch(){
+      if (geoWatchId!=null) { navigator.geolocation.clearWatch(geoWatchId); }
+      geoWatchId = null; lastCoords = null;
+    }
+
+    /* ---------- TORCH ---------- */
+    function setupTorch(track){
+      const cap = track?.getCapabilities?.()||{};
+      if (!('torch' in cap)){ disableTorch(); supportNote.textContent = '🔦 Taschenlampe nicht verfügbar'; return; }
+      torchTrack=track; torchBtn.disabled=false;
+      torchBtn.textContent='🔦 Aus'; torchBtn.setAttribute('aria-pressed','false');
+      supportNote.textContent = '🔦 Taschenlampe verfügbar';
+      torchBtn.onclick=async()=>{
+        try {
+          torchOn = torchBtn.getAttribute('aria-pressed')!=='true';
+          await torchTrack.applyConstraints({advanced:[{torch:torchOn}]});
+          torchBtn.setAttribute('aria-pressed',torchOn?'true':'false');
+          torchBtn.textContent=torchOn?'🔦 An':'🔦 Aus';
+        }catch(e){ console.debug('Torch toggle failed',e); }
+      };
+    }
+    function disableTorch(){ torchTrack=null; torchBtn.disabled=true; torchBtn.textContent='🔦'; torchBtn.onclick=null; }
+
+    /* ---------- SCANNER ---------- */
+    function createReader(){
+      hints = buildHints();
+      const r = new BrowserMultiFormatReader(hints);
+      // Manche Builds brauchen setHints separat:
+      try{ r.setHints?.(hints); }catch{}
+      return r;
+    }
+
+    async function start(){
+      if(running) return;
+      running = true; supportNote.textContent = 'Starte Kamera…';
+      reader = createReader();
+
+      const constraints = {
+        audio:false,
+        video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } }
+      };
+
+      try {
+        await reader.decodeFromConstraints(constraints, video, (result, err) => {
+          // Track/Torch init einmalig
+          if(!torchTrack){
+            try{
+              const stream = video.srcObject;
+              const t = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+              if (t) setupTorch(t);
+            }catch{}
+          }
+
+          if (result) {
+            const text = result.getText ? result.getText() : (result.text || '');
+            const fmt  = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.barcodeFormat||'');
+            const now = Date.now();
+            if (!text) return;
+            const quickRepeat = (text===lastText) && (now-lastAt)<800;
+            if (quickRepeat) return;
+            lastText=text; lastAt=now;
+
+            if (!allowDuplicatesEl.checked && seen.has(text)) return;
+
+            const entry = {
+              id: crypto.randomUUID?.()||now,
+              code: text,
+              format: fmt && BarcodeFormat[fmt] ? formatName(fmt) : (fmt||''),
+              ts: now,
+              ...(trackLocationEl.checked && lastCoords ? {lat:lastCoords.lat, lon:lastCoords.lon} : {})
+            };
+            scans.push(entry); saveScans(); seen.add(text);
+            // UI Update
+            if (!panels.list.hidden) appendRow(entry,true);
+            updateCount(); renderPreview(); renderStats();
+            beep();
+
+          } else if (err && !(err instanceof NotFoundException)) {
+            console.debug(err);
+          }
+        });
+
+        startBtn.disabled = true; stopBtn.disabled = false;
+        supportNote.textContent = (navigator.share ? '📤 Web Share verfügbar • ' : '') + '📷 Kamera aktiv';
+        startGeoWatch();
+
+        document.addEventListener('visibilitychange', visResume, {passive:true});
+      } catch (e) {
+        running=false; supportNote.textContent=''; alert('Kamera konnte nicht gestartet werden. Prüfe HTTPS/Browser-Berechtigung.');
+      }
+    }
+
+    function visResume(){
+      if(document.visibilityState==='visible'&&running&&video.paused){
+        video.play().catch(()=>{});
+      }
+    }
+
+    function stop(){
+      if(!running) return;
+      running=false;
+      try{ reader?.reset?.(); }catch{}
+      reader=null;
+      const stream=video.srcObject;
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); video.srcObject=null; }
+      disableTorch();
+      stopBtn.disabled=true; startBtn.disabled=false;
+      supportNote.textContent='';
+      document.removeEventListener('visibilitychange', visResume);
+      stopGeoWatch();
+    }
+
+    /* ---------- EXPORT / PREVIEW / STATS ---------- */
+    function toCsv(rows){
+      const header = ['code','format','timestamp','iso','lat','lon'];
+      const lines = [header.join(',')];
+      for (const r of rows){
+        const iso = new Date(r.ts).toISOString();
+        const cells = [
+          csvEscape(r.code),
+          csvEscape(r.format||''),
+          csvEscape(fmtTime(r.ts)),
+          csvEscape(iso),
+          r.lat!=null ? r.lat : '',
+          r.lon!=null ? r.lon : ''
+        ];
+        lines.push(cells.join(','));
+      }
+      return lines.join('\n');
+    }
+    function csvEscape(v){
+      const s = String(v??'');
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+      return s;
+    }
+
+    function renderPreview(){
+      if (!scans.length){ previewCard.innerHTML = '<em>CSV Vorschau erscheint nach erstem Scan.</em>'; return; }
+      const sample = scans.slice(-10);
+      const csv = toCsv(sample);
+      previewCard.innerHTML = `<pre style="white-space:pre-wrap;margin:0">${escapeHtml(csv)}</pre>`;
+    }
+
+    function renderStats(){
+      const total = scans.length;
+      const uniq  = new Set(scans.map(s=>s.code)).size;
+      const byFmt = new Map();
+      scans.forEach(s => byFmt.set(s.format||'Unbekannt', (byFmt.get(s.format||'Unbekannt')||0)+1));
+      const fmtHtml = [...byFmt.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li>${escapeHtml(k)}: <strong>${v}</strong></li>`).join('');
+      const last = total ? fmtTime(scans[scans.length-1].ts) : '–';
+      statsCard.innerHTML = `
+        <div style="display:flex;gap:18px;flex-wrap:wrap">
+          <div><strong>Gesamt:</strong> ${total}</div>
+          <div><strong>Einzigartig:</strong> ${uniq}</div>
+          <div><strong>Letzter Scan:</strong> ${last}</div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+        <div><strong>Formate</strong></div>
+        <ul style="margin:8px 0 0; padding-left:18px">${fmtHtml||'<li>–</li>'}</ul>
+      `;
+    }
+
+    async function exportCsv(){
+      const csv = toCsv(scans);
+      const blob = new Blob([csv], {type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      downloadURL(url, `barcodes_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`);
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    }
+
+    async function shareCsv(){
+      const csv = toCsv(scans);
+      const file = new File([csv], 'barcodes.csv', {type:'text/csv'});
+      if (navigator.canShare && navigator.canShare({ files:[file] })) {
+        try{
+          await navigator.share({ title:'Barcodes', text:'Export aus Barcode-Logger', files:[file] });
+          return;
+        }catch(e){ /* abgebrochen */ }
+      }
+      // Fallback: Mailto (Body gekürzt) + Download
+      const maxBody = 1800;
+      const body = encodeURIComponent(csv.slice(0,maxBody) + (csv.length>maxBody?'\n…':''));
+      window.location.href = `mailto:?subject=${encodeURIComponent('Barcode-CSV')}&body=${body}`;
+      // parallel Download
+      const blob = new Blob([csv],{type:'text/csv'});
+      const url = URL.createObjectURL(blob);
+      downloadURL(url, 'barcodes.csv');
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    }
+
+    function backupJson(){
+      const json = JSON.stringify(scans, null, 2);
+      const blob = new Blob([json], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      downloadURL(url, `barcode_backup_${new Date().toISOString().slice(0,10)}.json`);
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    }
+
+    function restoreJson(){
+      const inp = document.createElement('input');
+      inp.type='file'; inp.accept='application/json';
+      inp.onchange = async () => {
+        const f = inp.files?.[0]; if(!f) return;
+        try{
+          const text = await f.text();
+          const data = JSON.parse(text);
+          if (!Array.isArray(data)) throw new Error('Ungültiges Format');
+          // Merge (einfach anhängen; Duplikate möglich je nach Einstellung)
+          scans = data.map(x => ({
+            id: x.id || crypto.randomUUID?.(),
+            code: String(x.code||''),
+            format: x.format||'',
+            ts: Number(x.ts)||Date.now(),
+            ...(x.lat!=null && x.lon!=null ? {lat:Number(x.lat), lon:Number(x.lon)} : {})
+          }));
+          saveScans();
+          seen = new Set(scans.map(s=>s.code));
+          renderList(); renderPreview(); renderStats(); updateCount();
+          alert('Backup wiederhergestellt.');
+        }catch(e){ alert('Wiederherstellen fehlgeschlagen.'); }
+      };
+      inp.click();
+    }
+
+    function clearAll(){
+      if (!confirm('Wirklich alle Einträge löschen?')) return;
+      scans = []; saveScans(); scanList.innerHTML=''; seen.clear();
+      renderPreview(); renderStats(); updateCount();
+    }
+
+    function downloadURL(url, filename){
+      const a = document.createElement('a');
+      a.href=url; a.download=filename; a.style.display='none';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    /* ---------- FORMATE UI ---------- */
+    function formatName(fmtVal){
+      // fmtVal kann Zahl sein – zurück zu KEY
+      if (typeof fmtVal==='number'){
+        const key = Object.keys(BarcodeFormat).find(k => BarcodeFormat[k]===fmtVal);
+        return key || String(fmtVal);
+      }
+      return String(fmtVal);
+    }
+
+    function renderFormatsUI(){
+      supportedFormatsEl.textContent = selectedFormats.join(', ');
+      fmtGrid.innerHTML = '';
+      ALL_FORMAT_KEYS.forEach(key=>{
+        const id = 'fmt_'+key;
+        const wrap = document.createElement('label');
+        wrap.className = 'fmt-item';
+        wrap.innerHTML = `
+          <input type="checkbox" id="${id}" ${selectedFormats.includes(key)?'checked':''}>
+          <span>${key.replace('_',' ')}</span>`;
+        fmtGrid.appendChild(wrap);
+      });
+
+      selectAllBtn.onclick = ()=>{ setAllFmt(true); };
+      selectNoneBtn.onclick= ()=>{ setAllFmt(false); };
+      applyFormatsBtn.onclick = ()=>applyFormats();
+    }
+
+    function setAllFmt(val){
+      fmtGrid.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=val);
+    }
+
+    function applyFormats(){
+      const picked = [...fmtGrid.querySelectorAll('input[type="checkbox"]')]
+        .filter(cb=>cb.checked).map(cb=>cb.id.replace('fmt_',''));
+      selectedFormats = picked.length ? picked : [];
+      saveSelectedFormats();
+      supportedFormatsEl.textContent = selectedFormats.join(', ') || 'Alle';
+      // Reader neu mit Hints
+      const wasRunning = running;
+      if (wasRunning) stop();
+      hints = buildHints();
+      if (wasRunning) start();
+      alert('Format-Einstellungen übernommen.');
+    }
+
+    /* ---------- FILTER ---------- */
+    filterInput.addEventListener('input', renderList);
+
+    /* ---------- EVENTS ---------- */
+    startBtn.addEventListener('click', start);
+    stopBtn .addEventListener('click', stop);
+    clearBtn.addEventListener('click', ()=>{ scans=[]; saveScans(); renderList(); renderPreview(); renderStats(); seen.clear(); });
+
+    exportCsvBtn.addEventListener('click', exportCsv);
+    shareCsvBtn .addEventListener('click', shareCsv);
+    backupJsonBtn.addEventListener('click', backupJson);
+    restoreJsonBtn.addEventListener('click', restoreJson);
+    clearAllBtn  .addEventListener('click', clearAll);
+
+    trackLocationEl.addEventListener('change', ()=>{
+      if (trackLocationEl.checked) startGeoWatch(); else stopGeoWatch();
+    });
+
+    /* ---------- INIT ---------- */
+    (function init(){
+      renderList(); renderPreview(); renderStats(); updateCount();
+      // Auto-Start sanft versuchen; auf Mobilgeräten ist ggf. ein Tap nötig
+      try{ start(); }catch{}
+    })();
+  })();
+  </script>
+</body>
+</html>
