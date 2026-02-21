@@ -80,6 +80,20 @@
     .fmt-item{display:flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--elev);padding:8px 10px;border-radius:12px}
 
     .footer{padding:14px;color:var(--muted);text-align:center;border-top:1px solid var(--border)}
+
+    .mode-seg{display:inline-flex;flex-wrap:wrap;gap:6px}
+    .mode-seg button{border:1px solid var(--border);background:var(--elev);color:var(--muted);padding:8px 14px;border-radius:12px;cursor:pointer;font-weight:700;transition:background .15s,color .15s}
+    .mode-seg button[aria-pressed="true"]{color:white}
+    .mode-seg button[data-mode="general"][aria-pressed="true"]{background:#6b7280;border-color:#6b7280}
+    .mode-seg button[data-mode="delivery"][aria-pressed="true"]{background:#3b82f6;border-color:#3b82f6}
+    .mode-seg button[data-mode="stock"][aria-pressed="true"]{background:#16a34a;border-color:#16a34a}
+    .mode-seg button[data-mode="maintenance"][aria-pressed="true"]{background:#f59e0b;border-color:#f59e0b;color:#000}
+
+    .mode-badge{display:inline-block;font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px;color:white;vertical-align:middle}
+    .mode-badge-general{background:#6b7280}
+    .mode-badge-delivery{background:#3b82f6}
+    .mode-badge-stock{background:#16a34a}
+    .mode-badge-maintenance{background:#f59e0b;color:#000}
   </style>
 </head>
 <body>
@@ -111,6 +125,17 @@
         </div>
 
         <div class="grid">
+          <div class="card">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <strong>Modus</strong>
+              <div class="mode-seg" id="modeSeg" role="group" aria-label="Scan-Modus">
+                <button data-mode="general"     aria-pressed="true" >📋 Allgemein</button>
+                <button data-mode="delivery"    aria-pressed="false">📦 Lieferung</button>
+                <button data-mode="stock"       aria-pressed="false">🗃️ Lager</button>
+                <button data-mode="maintenance" aria-pressed="false">🔧 Wartung</button>
+              </div>
+            </div>
+          </div>
           <div class="card toggles">
             <label class="switch"><input type="checkbox" id="trackLocation"> Standort mitschreiben</label>
             <label class="switch"><input type="checkbox" id="allowDuplicates"> Dubletten erlauben</label>
@@ -131,6 +156,13 @@
             <strong>Gescannte Codes</strong>
             <span id="count" aria-live="polite">(0)</span>
             <input id="filterInput" type="search" placeholder="Liste filtern…" style="margin-left:auto;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)">
+            <select id="filterMode" style="padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)">
+              <option value="">Alle Modi</option>
+              <option value="general">📋 Allgemein</option>
+              <option value="delivery">📦 Lieferung</option>
+              <option value="stock">🗃️ Lager</option>
+              <option value="maintenance">🔧 Wartung</option>
+            </select>
           </div>
         </div>
         <div class="card">
@@ -180,6 +212,8 @@
     const LS_KEY_SCANS = 'barcode_logger_scans_v3';
     const LS_KEY_THEME = 'barcode_logger_theme';
     const LS_KEY_FORMATS = 'barcode_logger_formats';
+    const LS_KEY_MODE = 'barcode_logger_mode';
+    const DEFAULT_MODE = 'general';
     let scans = loadScans();
 
     function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY_SCANS))||[]; }catch{ return []; } }
@@ -247,6 +281,7 @@
     let seen = new Set(scans.map(s => s.code));
     let geoWatchId = null;
     let lastCoords = null;
+    let currentMode = localStorage.getItem(LS_KEY_MODE) || DEFAULT_MODE;
 
     /* ---------- THEME ---------- */
     initTheme();
@@ -262,6 +297,21 @@
       else{ document.body.setAttribute('data-theme', mode); }
       for (const k in themeBtns) themeBtns[k].setAttribute('aria-pressed', String(k===mode));
       localStorage.setItem(LS_KEY_THEME, mode);
+    }
+
+    /* ---------- MODE ---------- */
+    initMode();
+    function initMode(){
+      const seg = $('modeSeg');
+      seg.querySelectorAll('button').forEach(btn => {
+        if (btn.dataset.mode === currentMode) btn.setAttribute('aria-pressed','true');
+        else btn.setAttribute('aria-pressed','false');
+        btn.addEventListener('click', () => {
+          currentMode = btn.dataset.mode;
+          localStorage.setItem(LS_KEY_MODE, currentMode);
+          seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b===btn)));
+        });
+      });
     }
 
     /* ---------- TABS ---------- */
@@ -328,15 +378,19 @@
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
     function updateCount(){ countEl.textContent = `(${scans.length})`; }
 
+    const MODE_LABELS = {general:'📋 Allgemein', delivery:'📦 Lieferung', stock:'🗃️ Lager', maintenance:'🔧 Wartung'};
+
     function appendRow(entry, prepend=false){
       const li = document.createElement('li');
       li.className = 'row';
       li.dataset.code = entry.code;
       const loc = (entry.lat!=null && entry.lon!=null) ? `📍 ${entry.lat.toFixed(5)}, ${entry.lon.toFixed(5)}` : '';
+      const modeKey = entry.mode || DEFAULT_MODE;
+      const modeBadge = `<span class="mode-badge mode-badge-${escapeHtml(modeKey)}">${escapeHtml(MODE_LABELS[modeKey]||modeKey)}</span>`;
       li.innerHTML = `
         <div class="top">
           <div class="code">${escapeHtml(entry.code)}</div>
-          <div class="meta">${escapeHtml(entry.format||'')}</div>
+          <div class="meta">${modeBadge} ${escapeHtml(entry.format||'')}</div>
         </div>
         <div class="meta">
           <span>⏱ ${fmtTime(entry.ts)}</span>
@@ -348,8 +402,9 @@
     function renderList(){
       scanList.innerHTML = '';
       const q = (filterInput.value||'').toLowerCase().trim();
+      const mf = ($('filterMode')?.value)||'';
       scans
-        .filter(e => !q || e.code.toLowerCase().includes(q))
+        .filter(e => (!q || e.code.toLowerCase().includes(q)) && (!mf || (e.mode||DEFAULT_MODE)===mf))
         .slice().reverse()
         .forEach(e => appendRow(e));
       updateCount();
@@ -448,6 +503,7 @@
               id: crypto.randomUUID?.()||now,
               code: text,
               format: fmt && BarcodeFormat[fmt] ? formatName(fmt) : (fmt||''),
+              mode: currentMode,
               ts: now,
               ...(trackLocationEl.checked && lastCoords ? {lat:lastCoords.lat, lon:lastCoords.lon} : {})
             };
@@ -494,13 +550,14 @@
 
     /* ---------- EXPORT / PREVIEW / STATS ---------- */
     function toCsv(rows){
-      const header = ['code','format','timestamp','iso','lat','lon'];
+      const header = ['code','format','mode','timestamp','iso','lat','lon'];
       const lines = [header.join(',')];
       for (const r of rows){
         const iso = new Date(r.ts).toISOString();
         const cells = [
           csvEscape(r.code),
           csvEscape(r.format||''),
+          csvEscape(r.mode||DEFAULT_MODE),
           csvEscape(fmtTime(r.ts)),
           csvEscape(iso),
           r.lat!=null ? r.lat : '',
@@ -529,6 +586,9 @@
       const byFmt = new Map();
       scans.forEach(s => byFmt.set(s.format||'Unbekannt', (byFmt.get(s.format||'Unbekannt')||0)+1));
       const fmtHtml = [...byFmt.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li>${escapeHtml(k)}: <strong>${v}</strong></li>`).join('');
+      const byMode = new Map();
+      scans.forEach(s => { const m=s.mode||DEFAULT_MODE; byMode.set(m,(byMode.get(m)||0)+1); });
+      const modeHtml = [...byMode.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li><span class="mode-badge mode-badge-${escapeHtml(k)}">${escapeHtml(MODE_LABELS[k]||k)}</span> <strong>${v}</strong></li>`).join('');
       const last = total ? fmtTime(scans[scans.length-1].ts) : '–';
       statsCard.innerHTML = `
         <div style="display:flex;gap:18px;flex-wrap:wrap">
@@ -537,8 +597,10 @@
           <div><strong>Letzter Scan:</strong> ${last}</div>
         </div>
         <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
-        <div><strong>Formate</strong></div>
-        <ul style="margin:8px 0 0; padding-left:18px">${fmtHtml||'<li>–</li>'}</ul>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+          <div><strong>Modi</strong><ul style="margin:8px 0 0;padding-left:18px">${modeHtml||'<li>–</li>'}</ul></div>
+          <div><strong>Formate</strong><ul style="margin:8px 0 0;padding-left:18px">${fmtHtml||'<li>–</li>'}</ul></div>
+        </div>
       `;
     }
 
@@ -592,6 +654,7 @@
             id: x.id || crypto.randomUUID?.(),
             code: String(x.code||''),
             format: x.format||'',
+            mode: x.mode||DEFAULT_MODE,
             ts: Number(x.ts)||Date.now(),
             ...(x.lat!=null && x.lon!=null ? {lat:Number(x.lat), lon:Number(x.lon)} : {})
           }));
@@ -664,6 +727,7 @@
 
     /* ---------- FILTER ---------- */
     filterInput.addEventListener('input', renderList);
+    $('filterMode').addEventListener('change', renderList);
 
     /* ---------- EVENTS ---------- */
     startBtn.addEventListener('click', start);
