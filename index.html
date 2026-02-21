@@ -104,6 +104,17 @@
     .field-row input,.field-row select{flex:1;padding:7px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text);font-size:14px}
     .extra-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px}
     .extra-meta span{background:var(--bg);border-radius:6px;padding:1px 6px}
+
+    .mode-banner{transition:border-color .2s}
+    .mode-banner[data-mode="general"]{border-left:4px solid #6b7280}
+    .mode-banner[data-mode="delivery"]{border-left:4px solid #3b82f6}
+    .mode-banner[data-mode="stock"]{border-left:4px solid #16a34a}
+    .mode-banner[data-mode="maintenance"]{border-left:4px solid #f59e0b}
+    .mode-banner-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+    .mode-banner-title{font-size:16px;font-weight:800}
+    .mode-banner-stats{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+    .stat-pill{display:inline-flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-size:12px;font-weight:700}
+    .mode-banner-prompt{font-size:13px;color:var(--muted);font-style:italic}
   </style>
 </head>
 <body>
@@ -145,6 +156,13 @@
                 <button data-mode="maintenance" aria-pressed="false">🔧 Wartung</button>
               </div>
             </div>
+          </div>
+          <div id="modeBanner" class="card mode-banner" data-mode="general">
+            <div class="mode-banner-head">
+              <span class="mode-banner-title" id="modeBannerTitle">📋 Allgemein</span>
+              <span class="mode-banner-stats" id="modeBannerStats"></span>
+            </div>
+            <p class="mode-banner-prompt" id="modeBannerPrompt">Beliebigen Code scannen…</p>
           </div>
           <div class="card toggles">
             <label class="switch"><input type="checkbox" id="trackLocation"> Standort mitschreiben</label>
@@ -344,8 +362,32 @@
           currentMode = btn.dataset.mode;
           localStorage.setItem(LS_KEY_MODE, currentMode);
           seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b===btn)));
+          applyModeDefaults(currentMode);
+          renderModeBanner();
         });
       });
+      applyModeDefaults(currentMode);
+      renderModeBanner();
+    }
+
+    function applyModeDefaults(modeKey){
+      const mode = MODES[modeKey] || MODES[DEFAULT_MODE];
+      if (mode.autoLocation && !trackLocationEl.checked){
+        trackLocationEl.checked = true;
+        startGeoWatch();
+      }
+      allowDuplicatesEl.checked = mode.autoAllowDupes;
+    }
+
+    function renderModeBanner(){
+      const mode = MODES[currentMode] || MODES[DEFAULT_MODE];
+      const banner = $('modeBanner');
+      if (!banner) return;
+      banner.dataset.mode = currentMode;
+      $('modeBannerTitle').textContent = mode.label;
+      $('modeBannerPrompt').textContent = mode.prompt;
+      const pills = mode.stats(scans);
+      $('modeBannerStats').innerHTML = pills.map(p=>`<span class="stat-pill">${escapeHtml(p)}</span>`).join('');
     }
 
     /* ---------- TABS ---------- */
@@ -412,7 +454,41 @@
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
     function updateCount(){ countEl.textContent = `(${scans.length})`; }
 
-    const MODE_LABELS = {general:'📋 Allgemein', delivery:'📦 Lieferung', stock:'🗃️ Lager', maintenance:'🔧 Wartung'};
+    // Stats helpers used by MODES.stats() functions
+    function _modeScans(s,k){ return s.filter(x=>(x.mode||DEFAULT_MODE)===k); }
+    function _todayCount(m){ const t=new Date().toDateString(); return m.filter(x=>new Date(x.ts).toDateString()===t).length; }
+
+    const MODES = {
+      general: {
+        label:'📋 Allgemein', color:'#6b7280',
+        prompt:'Beliebigen Code scannen…',
+        saveCta:'💾 Speichern',
+        autoLocation:false, autoAllowDupes:false,
+        stats(s){ const m=_modeScans(s,'general'); return [`${_todayCount(m)} heute`,`${m.length} gesamt`]; }
+      },
+      delivery: {
+        label:'📦 Lieferung', color:'#3b82f6',
+        prompt:'Paket-Barcode / QR-Code scannen…',
+        saveCta:'✅ Zugestellt',
+        autoLocation:true, autoAllowDupes:true,
+        stats(s){ const m=_modeScans(s,'delivery'); const loc=m.filter(x=>x.lat!=null).length; return [`${_todayCount(m)} heute`,`${m.length} gesamt`,`📍 ${loc} mit Standort`]; }
+      },
+      stock: {
+        label:'🗃️ Lager', color:'#16a34a',
+        prompt:'Artikel-EAN / Regalcode scannen…',
+        saveCta:'📥 Einbuchen',
+        autoLocation:false, autoAllowDupes:false,
+        stats(s){ const m=_modeScans(s,'stock'); const qty=m.reduce((a,x)=>a+(x.qty||1),0); return [`${_todayCount(m)} Buchungen heute`,`${new Set(m.map(x=>x.code)).size} SKUs`,`${qty} Stk. gesamt`]; }
+      },
+      maintenance: {
+        label:'🔧 Wartung', color:'#f59e0b',
+        prompt:'Equipment-Barcode / Asset-Tag scannen…',
+        saveCta:'🔧 Protokollieren',
+        autoLocation:false, autoAllowDupes:false,
+        stats(s){ const m=_modeScans(s,'maintenance'); const open=m.filter(x=>!x.status||x.status==='offen'||x.status==='in Bearbeitung').length; return [`${_todayCount(m)} heute`,`${open} offen`,`${m.filter(x=>x.status==='abgeschlossen').length} abgeschlossen`]; }
+      }
+    };
+    const MODE_LABELS = Object.fromEntries(Object.entries(MODES).map(([k,v])=>[k,v.label]));
 
     const MODE_FIELDS = {
       general: [
@@ -523,6 +599,8 @@
         row.appendChild(inp);
         container.appendChild(row);
       });
+      const mode = MODES[modeKey] || MODES[DEFAULT_MODE];
+      $('lastScanSave').textContent = mode.saveCta;
       card.hidden = false;
     }
 
@@ -544,6 +622,7 @@
       $('lastScanCard').hidden = true;
       // Refresh list row in-place if list tab is visible
       if (!panels.list.hidden) renderList();
+      renderModeBanner();
       lastScanEntry = null;
     }
 
@@ -576,10 +655,14 @@
       }
     }
 
+    let _webhookConfigInit = false;
     function initWebhookConfig(){
       const urlInput = $('webhookUrl');
       if (!urlInput) return;
+      // Always refresh the displayed URL from storage when revisiting the Config tab
       urlInput.value = localStorage.getItem(LS_KEY_WEBHOOK) || '';
+      if (_webhookConfigInit) return;  // attach event listeners only once
+      _webhookConfigInit = true;
       $('saveWebhookBtn').addEventListener('click', () => {
         const val = urlInput.value.trim();
         if (val) localStorage.setItem(LS_KEY_WEBHOOK, val);
@@ -708,7 +791,7 @@
             scans.push(entry); saveScans(); seen.add(text);
             // UI Update
             if (!panels.list.hidden) appendRow(entry,true);
-            updateCount(); renderPreview(); renderStats();
+            updateCount(); renderPreview(); renderStats(); renderModeBanner();
             beep();
             // Dismiss any open detail card (fire-and-forget webhook for the previous entry)
             dismissLastScanCard();
@@ -966,7 +1049,7 @@
 
     /* ---------- INIT ---------- */
     (function init(){
-      renderList(); renderPreview(); renderStats(); updateCount();
+      renderList(); renderPreview(); renderStats(); updateCount(); renderModeBanner();
       initWebhookConfig();
       // Auto-Start sanft versuchen; auf Mobilgeräten ist ggf. ein Tap nötig
       try{ start(); }catch{}
