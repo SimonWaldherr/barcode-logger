@@ -94,6 +94,16 @@
     .mode-badge-delivery{background:#3b82f6}
     .mode-badge-stock{background:#16a34a}
     .mode-badge-maintenance{background:#f59e0b;color:#000}
+
+    .detail-card{border-left:4px solid var(--primary)}
+    .detail-card[data-mode="delivery"]{border-left-color:#3b82f6}
+    .detail-card[data-mode="stock"]{border-left-color:#16a34a}
+    .detail-card[data-mode="maintenance"]{border-left-color:#f59e0b}
+    .field-row{display:flex;gap:8px;align-items:center}
+    .field-row label{min-width:90px;font-size:13px;color:var(--muted);font-weight:600}
+    .field-row input,.field-row select{flex:1;padding:7px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text);font-size:14px}
+    .extra-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px}
+    .extra-meta span{background:var(--bg);border-radius:6px;padding:1px 6px}
   </style>
 </head>
 <body>
@@ -148,6 +158,16 @@
             <button id="clearBtn" class="btn danger">Liste leeren</button>
           </div>
         </div>
+
+        <div id="lastScanCard" class="card detail-card" hidden>
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+            <strong id="lastScanLabel"></strong>
+            <span id="lastScanCode" class="code" style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+            <button id="lastScanClose" class="btn ghost" style="height:32px;padding:0 12px;font-size:13px">✕ Überspringen</button>
+          </div>
+          <div id="lastScanFields" style="display:grid;gap:8px"></div>
+          <button id="lastScanSave" class="btn primary" style="width:100%;margin-top:10px">💾 Details speichern</button>
+        </div>
       </section>
 
       <section id="panel-list" class="panel grid" role="tabpanel" aria-labelledby="tab-list" hidden>
@@ -198,6 +218,18 @@
           <button id="selectNoneBtn" class="btn ghost">Keine</button>
           <span class="meta">Tipp: Änderungen wirken beim nächsten Scan-Start. „Übernehmen“ stoppt/ startet bei Bedarf automatisch.</span>
         </div>
+        <div class="card">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <strong>🔗 Sync-Backend (Webhook)</strong>
+          </div>
+          <p class="meta" style="margin:6px 0 10px">Jeder abgeschlossene Scan wird als HTTP&nbsp;POST (JSON) an diese URL gesendet. Leer lassen zum Deaktivieren.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <input id="webhookUrl" type="url" placeholder="https://example.com/api/scan" style="flex:1;min-width:200px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)">
+            <button id="saveWebhookBtn" class="btn primary">Speichern</button>
+            <button id="testWebhookBtn" class="btn ghost">Testen</button>
+          </div>
+          <span id="webhookStatus" class="meta" style="margin-top:8px;display:block" aria-live="polite"></span>
+        </div>
       </section>
     </main>
 
@@ -213,6 +245,7 @@
     const LS_KEY_THEME = 'barcode_logger_theme';
     const LS_KEY_FORMATS = 'barcode_logger_formats';
     const LS_KEY_MODE = 'barcode_logger_mode';
+    const LS_KEY_WEBHOOK = 'barcode_logger_webhook';
     const DEFAULT_MODE = 'general';
     let scans = loadScans();
 
@@ -282,6 +315,7 @@
     let geoWatchId = null;
     let lastCoords = null;
     let currentMode = localStorage.getItem(LS_KEY_MODE) || DEFAULT_MODE;
+    let lastScanEntry = null;
 
     /* ---------- THEME ---------- */
     initTheme();
@@ -346,7 +380,7 @@
       });
       if(name==='list'){ renderList(); }
       if(name==='export'){ renderStats(); renderPreview(); }
-      if(name==='config'){ renderFormatsUI(); }
+      if(name==='config'){ renderFormatsUI(); initWebhookConfig(); }
     }
 
     /* ---------- ZXING / HINTS ---------- */
@@ -380,6 +414,30 @@
 
     const MODE_LABELS = {general:'📋 Allgemein', delivery:'📦 Lieferung', stock:'🗃️ Lager', maintenance:'🔧 Wartung'};
 
+    const MODE_FIELDS = {
+      general: [
+        { key:'notes', label:'Notizen', type:'text', placeholder:'Optionale Notiz…' }
+      ],
+      delivery: [
+        { key:'qty',       label:'Menge',     type:'number', placeholder:'1' },
+        { key:'recipient', label:'Empfänger', type:'text',   placeholder:'Name des Empfängers…' },
+        { key:'reference', label:'Referenz',  type:'text',   placeholder:'Auftragsnr., Lieferschein…' },
+        { key:'notes',     label:'Notizen',   type:'text',   placeholder:'z.B. Abstellgenehmigung…' }
+      ],
+      stock: [
+        { key:'qty',       label:'Menge',      type:'number', placeholder:'1' },
+        { key:'shelf',     label:'Lagerplatz', type:'text',   placeholder:'z.B. A1-03…' },
+        { key:'reference', label:'Referenz',   type:'text',   placeholder:'Lieferschein, Bestellnr.…' },
+        { key:'notes',     label:'Notizen',    type:'text',   placeholder:'Optional…' }
+      ],
+      maintenance: [
+        { key:'workType',   label:'Art',       type:'select', options:['Inspektion','Reparatur','Austausch','Prüfung','Reinigung'] },
+        { key:'technician', label:'Techniker', type:'text',   placeholder:'Name…' },
+        { key:'status',     label:'Status',    type:'select', options:['offen','in Bearbeitung','abgeschlossen'] },
+        { key:'notes',      label:'Notizen',   type:'text',   placeholder:'Details zur Arbeit…' }
+      ]
+    };
+
     function appendRow(entry, prepend=false){
       const li = document.createElement('li');
       li.className = 'row';
@@ -387,6 +445,17 @@
       const loc = (entry.lat!=null && entry.lon!=null) ? `📍 ${entry.lat.toFixed(5)}, ${entry.lon.toFixed(5)}` : '';
       const modeKey = entry.mode || DEFAULT_MODE;
       const modeBadge = `<span class="mode-badge mode-badge-${escapeHtml(modeKey)}">${escapeHtml(MODE_LABELS[modeKey]||modeKey)}</span>`;
+      // Extra fields
+      const extraParts = [];
+      if (entry.qty != null)        extraParts.push(`<span>📦 ${escapeHtml(String(entry.qty))}</span>`);
+      if (entry.shelf)              extraParts.push(`<span>🗄️ ${escapeHtml(entry.shelf)}</span>`);
+      if (entry.recipient)          extraParts.push(`<span>👤 ${escapeHtml(entry.recipient)}</span>`);
+      if (entry.reference)          extraParts.push(`<span>🔖 ${escapeHtml(entry.reference)}</span>`);
+      if (entry.workType)           extraParts.push(`<span>🔧 ${escapeHtml(entry.workType)}</span>`);
+      if (entry.technician)         extraParts.push(`<span>👷 ${escapeHtml(entry.technician)}</span>`);
+      if (entry.status)             extraParts.push(`<span>🏷️ ${escapeHtml(entry.status)}</span>`);
+      if (entry.notes)              extraParts.push(`<span>📝 ${escapeHtml(entry.notes)}</span>`);
+      const extraHtml = extraParts.length ? `<div class="extra-meta">${extraParts.join('')}</div>` : '';
       li.innerHTML = `
         <div class="top">
           <div class="code">${escapeHtml(entry.code)}</div>
@@ -395,7 +464,8 @@
         <div class="meta">
           <span>⏱ ${fmtTime(entry.ts)}</span>
           ${loc ? `<span>${loc}</span>` : ''}
-        </div>`;
+        </div>
+        ${extraHtml}`;
       prepend ? scanList.prepend(li) : scanList.appendChild(li);
     }
 
@@ -408,6 +478,134 @@
         .slice().reverse()
         .forEach(e => appendRow(e));
       updateCount();
+    }
+
+
+    /* ---------- LAST SCAN DETAIL CARD ---------- */
+    function showLastScanCard(entry){
+      lastScanEntry = entry;
+      const modeKey = entry.mode || DEFAULT_MODE;
+      const card = $('lastScanCard');
+      card.dataset.mode = modeKey;
+      $('lastScanLabel').textContent = MODE_LABELS[modeKey] || modeKey;
+      $('lastScanCode').textContent = entry.code;
+      const container = $('lastScanFields');
+      container.innerHTML = '';
+      (MODE_FIELDS[modeKey] || MODE_FIELDS[DEFAULT_MODE]).forEach((f, i) => {
+        const row = document.createElement('div');
+        row.className = 'field-row';
+        const inputId = `lsf_${f.key}_${i}`;
+        const lbl = document.createElement('label');
+        lbl.textContent = f.label;
+        lbl.htmlFor = inputId;
+        let inp;
+        if (f.type === 'select') {
+          inp = document.createElement('select');
+          inp.id = inputId;
+          f.options.forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt; o.textContent = opt;
+            if (entry[f.key] === opt) o.selected = true;
+            inp.appendChild(o);
+          });
+        } else {
+          inp = document.createElement('input');
+          inp.id = inputId;
+          inp.type = f.type;
+          inp.placeholder = f.placeholder || '';
+          const existing = entry[f.key];
+          inp.value = existing != null ? existing : '';
+          if (f.type === 'number') inp.min = '0';
+        }
+        inp.dataset.fieldKey = f.key;
+        inp.dataset.fieldType = f.type;
+        row.appendChild(lbl);
+        row.appendChild(inp);
+        container.appendChild(row);
+      });
+      card.hidden = false;
+    }
+
+    function saveLastScanDetails(){
+      if (!lastScanEntry) return;
+      $('lastScanFields').querySelectorAll('[data-field-key]').forEach(inp => {
+        const key = inp.dataset.fieldKey;
+        const val = inp.value.trim();
+        if (val === '') return;
+        if (inp.dataset.fieldType === 'number') {
+          const n = Number(val);
+          if (!isNaN(n)) lastScanEntry[key] = n;
+        } else {
+          lastScanEntry[key] = val;
+        }
+      });
+      saveScans();
+      syncToBackend(lastScanEntry);
+      $('lastScanCard').hidden = true;
+      // Refresh list row in-place if list tab is visible
+      if (!panels.list.hidden) renderList();
+      lastScanEntry = null;
+    }
+
+    function dismissLastScanCard(){
+      if (!lastScanEntry) return;
+      syncToBackend(lastScanEntry);
+      $('lastScanCard').hidden = true;
+      lastScanEntry = null;
+    }
+
+    /* ---------- WEBHOOK SYNC ---------- */
+    async function syncToBackend(entry){
+      const url = localStorage.getItem(LS_KEY_WEBHOOK);
+      if (!url) return;
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(entry),
+          keepalive: true  // allows the request to outlive a page navigation/close
+        });
+        const statusEl = $('webhookStatus');
+        if (statusEl) statusEl.textContent = resp.ok
+          ? `✅ Gesendet (${new Date().toLocaleTimeString()})`
+          : `⚠️ HTTP ${resp.status}`;
+      } catch(e) {
+        const statusEl = $('webhookStatus');
+        if (statusEl) statusEl.textContent = `❌ Verbindungsfehler`;
+        console.debug('Webhook failed', e);
+      }
+    }
+
+    function initWebhookConfig(){
+      const urlInput = $('webhookUrl');
+      if (!urlInput) return;
+      urlInput.value = localStorage.getItem(LS_KEY_WEBHOOK) || '';
+      $('saveWebhookBtn').addEventListener('click', () => {
+        const val = urlInput.value.trim();
+        if (val) localStorage.setItem(LS_KEY_WEBHOOK, val);
+        else localStorage.removeItem(LS_KEY_WEBHOOK);
+        $('webhookStatus').textContent = val ? '💾 URL gespeichert.' : '🗑️ Webhook deaktiviert.';
+      });
+      $('testWebhookBtn').addEventListener('click', async () => {
+        const url = urlInput.value.trim();
+        if (!url) { $('webhookStatus').textContent = '⚠️ Bitte zuerst URL eingeben und speichern.'; return; }
+        const testEntry = {
+          id: 'test-' + Date.now(),
+          code: 'TEST-123',
+          format: 'QR_CODE',
+          mode: currentMode,
+          qty: 1,
+          notes: 'Webhook-Test',
+          ts: Date.now()
+        };
+        $('webhookStatus').textContent = '⏳ Sende Testanfrage…';
+        try {
+          const resp = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(testEntry)});
+          $('webhookStatus').textContent = resp.ok ? `✅ Test erfolgreich (HTTP ${resp.status})` : `⚠️ HTTP ${resp.status}`;
+        } catch(e) {
+          $('webhookStatus').textContent = `❌ Verbindungsfehler: ${e.message}`;
+        }
+      });
     }
 
     /* ---------- AUDIO FEEDBACK ---------- */
@@ -512,6 +710,9 @@
             if (!panels.list.hidden) appendRow(entry,true);
             updateCount(); renderPreview(); renderStats();
             beep();
+            // Dismiss any open detail card (fire-and-forget webhook for the previous entry)
+            dismissLastScanCard();
+            showLastScanCard(entry);
 
           } else if (err && !(err instanceof NotFoundException)) {
             console.debug(err);
@@ -550,7 +751,7 @@
 
     /* ---------- EXPORT / PREVIEW / STATS ---------- */
     function toCsv(rows){
-      const header = ['code','format','mode','timestamp','iso','lat','lon'];
+      const header = ['code','format','mode','qty','shelf','recipient','reference','work_type','technician','status','notes','timestamp','iso','lat','lon'];
       const lines = [header.join(',')];
       for (const r of rows){
         const iso = new Date(r.ts).toISOString();
@@ -558,6 +759,14 @@
           csvEscape(r.code),
           csvEscape(r.format||''),
           csvEscape(r.mode||DEFAULT_MODE),
+          r.qty!=null ? r.qty : '',
+          csvEscape(r.shelf||''),
+          csvEscape(r.recipient||''),
+          csvEscape(r.reference||''),
+          csvEscape(r.workType||''),
+          csvEscape(r.technician||''),
+          csvEscape(r.status||''),
+          csvEscape(r.notes||''),
           csvEscape(fmtTime(r.ts)),
           csvEscape(iso),
           r.lat!=null ? r.lat : '',
@@ -656,7 +865,15 @@
             format: x.format||'',
             mode: x.mode||DEFAULT_MODE,
             ts: Number(x.ts)||Date.now(),
-            ...(x.lat!=null && x.lon!=null ? {lat:Number(x.lat), lon:Number(x.lon)} : {})
+            ...(x.lat!=null && x.lon!=null ? {lat:Number(x.lat), lon:Number(x.lon)} : {}),
+            ...(x.qty!=null      ? {qty:Number(x.qty)}           : {}),
+            ...(x.shelf          ? {shelf:String(x.shelf)}        : {}),
+            ...(x.recipient      ? {recipient:String(x.recipient)}: {}),
+            ...(x.reference      ? {reference:String(x.reference)}: {}),
+            ...(x.workType       ? {workType:String(x.workType)}  : {}),
+            ...(x.technician     ? {technician:String(x.technician)}: {}),
+            ...(x.status         ? {status:String(x.status)}     : {}),
+            ...(x.notes          ? {notes:String(x.notes)}       : {})
           }));
           saveScans();
           seen = new Set(scans.map(s=>s.code));
@@ -732,7 +949,6 @@
     /* ---------- EVENTS ---------- */
     startBtn.addEventListener('click', start);
     stopBtn .addEventListener('click', stop);
-    clearBtn.addEventListener('click', ()=>{ scans=[]; saveScans(); renderList(); renderPreview(); renderStats(); seen.clear(); });
 
     exportCsvBtn.addEventListener('click', exportCsv);
     shareCsvBtn .addEventListener('click', shareCsv);
@@ -744,9 +960,14 @@
       if (trackLocationEl.checked) startGeoWatch(); else stopGeoWatch();
     });
 
+    $('lastScanSave').addEventListener('click', saveLastScanDetails);
+    $('lastScanClose').addEventListener('click', dismissLastScanCard);
+    clearBtn.addEventListener('click', ()=>{ dismissLastScanCard(); scans=[]; saveScans(); renderList(); renderPreview(); renderStats(); seen.clear(); });
+
     /* ---------- INIT ---------- */
     (function init(){
       renderList(); renderPreview(); renderStats(); updateCount();
+      initWebhookConfig();
       // Auto-Start sanft versuchen; auf Mobilgeräten ist ggf. ein Tap nötig
       try{ start(); }catch{}
     })();
