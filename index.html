@@ -120,44 +120,48 @@
 <body>
   <div class="app" id="app">
     <header class="appbar">
-      <div class="appbar-inner" role="tablist" aria-label="Hauptmodi">
+      <div class="appbar-inner" role="tablist" aria-label="Hauptmodi" data-i18n-aria-label="aria_main_tabs">
         <div class="brand">📦 Barcode-Logger</div>
-        <div class="seg" id="modeTabs">
-          <button id="tab-scan" role="tab" aria-selected="true" aria-controls="panel-scan">Scan</button>
-          <button id="tab-list" role="tab" aria-selected="false" aria-controls="panel-list">Liste</button>
-          <button id="tab-export" role="tab" aria-selected="false" aria-controls="panel-export">Export</button>
-          <button id="tab-config" role="tab" aria-selected="false" aria-controls="panel-config">Konfig</button>
+        <div class="seg" id="modeTabs" aria-label="Hauptmodi" data-i18n-aria-label="aria_main_tabs">
+          <button id="tab-scan" role="tab" aria-selected="true" aria-controls="panel-scan" data-i18n="tab_scan">Scan</button>
+          <button id="tab-list" role="tab" aria-selected="false" aria-controls="panel-list" data-i18n="tab_list">Liste</button>
+          <button id="tab-export" role="tab" aria-selected="false" aria-controls="panel-export" data-i18n="tab_export">Export</button>
+          <button id="tab-config" role="tab" aria-selected="false" aria-controls="panel-config" data-i18n="tab_config">Konfig</button>
         </div>
         <div class="spacer"></div>
-        <div class="theme" aria-label="Darstellung">
-          <button id="theme-auto" aria-pressed="true" title="Auto">Auto</button>
-          <button id="theme-light" aria-pressed="false" title="Hell">☀️</button>
-          <button id="theme-dark" aria-pressed="false" title="Dunkel">🌙</button>
+        <div class="theme" aria-label="Darstellung" data-i18n-aria-label="theme_label">
+          <button id="theme-auto" aria-pressed="true" title="Auto" data-i18n="theme_auto" data-i18n-title="theme_auto">Auto</button>
+          <button id="theme-light" aria-pressed="false" title="Hell" data-i18n-title="theme_light">☀️</button>
+          <button id="theme-dark" aria-pressed="false" title="Dunkel" data-i18n-title="theme_dark">🌙</button>
+        </div>
+        <div class="theme" id="langSwitcher" aria-label="Sprache" data-i18n-aria-label="lang_label">
+          <button id="lang-de" aria-pressed="true">DE</button>
+          <button id="lang-en" aria-pressed="false">EN</button>
         </div>
       </div>
     </header>
 
     <main class="content">
-      <section id="panel-scan" class="panel grid" role="tabpanel" aria-labelledby="tab-scan">
+      <section id="panel-scan" class="panel grid" role="tabpanel" aria-labelledby="tab-scan" tabindex="0">
         <div class="card viewer">
-          <video id="preview" playsinline muted aria-label="Live-Kamera"></video>
+          <video id="preview" playsinline muted aria-label="Live-Kamera" data-i18n-aria-label="aria_camera"></video>
           <div class="frame" aria-hidden="true"></div>
-          <button id="torchBtn" class="torch" disabled aria-pressed="false" title="Taschenlampe">🔦</button>
+          <button id="torchBtn" class="torch" disabled aria-pressed="false" title="Taschenlampe" data-i18n-title="torch_title" aria-label="Taschenlampe" data-i18n-aria-label="torch_title">🔦</button>
         </div>
 
         <div class="grid">
           <div class="card">
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <strong>Modus</strong>
-              <div class="mode-seg" id="modeSeg" role="group" aria-label="Scan-Modus">
-                <button data-mode="general"     aria-pressed="true" >📋 Allgemein</button>
-                <button data-mode="delivery"    aria-pressed="false">📦 Lieferung</button>
-                <button data-mode="stock"       aria-pressed="false">🗃️ Lager</button>
-                <button data-mode="maintenance" aria-pressed="false">🔧 Wartung</button>
+              <strong data-i18n="mode_label">Modus</strong>
+              <div class="mode-seg" id="modeSeg" role="group" aria-label="Scan-Modus" data-i18n-aria-label="mode_seg_aria">
+                <button data-mode="general"     aria-pressed="true"  data-i18n-mode-label="general">📋 Allgemein</button>
+                <button data-mode="delivery"    aria-pressed="false" data-i18n-mode-label="delivery">📦 Lieferung</button>
+                <button data-mode="stock"       aria-pressed="false" data-i18n-mode-label="stock">🗃️ Lager</button>
+                <button data-mode="maintenance" aria-pressed="false" data-i18n-mode-label="maintenance">🔧 Wartung</button>
               </div>
             </div>
           </div>
-          <div id="modeBanner" class="card mode-banner" data-mode="general">
+          <div id="modeBanner" class="card mode-banner" data-mode="general" role="region" aria-label="Modus-Status" data-i18n-aria-label="aria_mode_banner" aria-live="polite">
             <div class="mode-banner-head">
               <span class="mode-banner-title" id="modeBannerTitle">📋 Allgemein</span>
               <span class="mode-banner-stats" id="modeBannerStats"></span>
@@ -165,65 +169,65 @@
             <p class="mode-banner-prompt" id="modeBannerPrompt">Beliebigen Code scannen…</p>
           </div>
           <div class="card toggles">
-            <label class="switch"><input type="checkbox" id="trackLocation"> Standort mitschreiben</label>
-            <label class="switch"><input type="checkbox" id="allowDuplicates"> Dubletten erlauben</label>
-            <label class="switch"><input type="checkbox" id="beepOn" checked> Akustisches Feedback</label>
+            <label class="switch"><input type="checkbox" id="trackLocation"> <span data-i18n="track_location">Standort mitschreiben</span></label>
+            <label class="switch"><input type="checkbox" id="allowDuplicates"> <span data-i18n="allow_dupes">Dubletten erlauben</span></label>
+            <label class="switch"><input type="checkbox" id="beepOn" checked> <span data-i18n="beep_on">Akustisches Feedback</span></label>
             <span id="supportNote" style="margin-left:auto" aria-live="polite"></span>
           </div>
           <div class="controls">
-            <button id="startBtn" class="btn primary">Start</button>
-            <button id="stopBtn" class="btn ghost">Stopp</button>
-            <button id="clearBtn" class="btn danger">Liste leeren</button>
+            <button id="startBtn" class="btn primary" data-i18n="btn_start">Start</button>
+            <button id="stopBtn" class="btn ghost" data-i18n="btn_stop">Stopp</button>
+            <button id="clearBtn" class="btn danger" data-i18n="btn_clear">Liste leeren</button>
           </div>
         </div>
 
-        <div id="lastScanCard" class="card detail-card" hidden>
+        <div id="lastScanCard" class="card detail-card" hidden role="region" aria-labelledby="lastScanLabel">
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
             <strong id="lastScanLabel"></strong>
             <span id="lastScanCode" class="code" style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-            <button id="lastScanClose" class="btn ghost" style="height:32px;padding:0 12px;font-size:13px">✕ Überspringen</button>
+            <button id="lastScanClose" class="btn ghost" style="height:32px;padding:0 12px;font-size:13px" data-i18n="skip_btn">✕ Überspringen</button>
           </div>
           <div id="lastScanFields" style="display:grid;gap:8px"></div>
           <button id="lastScanSave" class="btn primary" style="width:100%;margin-top:10px">💾 Details speichern</button>
         </div>
       </section>
 
-      <section id="panel-list" class="panel grid" role="tabpanel" aria-labelledby="tab-list" hidden>
+      <section id="panel-list" class="panel grid" role="tabpanel" aria-labelledby="tab-list" hidden tabindex="0">
         <div class="card">
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-            <strong>Gescannte Codes</strong>
-            <span id="count" aria-live="polite">(0)</span>
-            <input id="filterInput" type="search" placeholder="Liste filtern…" style="margin-left:auto;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)">
-            <select id="filterMode" style="padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)">
-              <option value="">Alle Modi</option>
-              <option value="general">📋 Allgemein</option>
-              <option value="delivery">📦 Lieferung</option>
-              <option value="stock">🗃️ Lager</option>
-              <option value="maintenance">🔧 Wartung</option>
+            <strong data-i18n="list_heading">Gescannte Codes</strong>
+            <span id="count" aria-live="polite" role="status">(0)</span>
+            <input id="filterInput" type="search" placeholder="Liste filtern…" style="margin-left:auto;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)" data-i18n-placeholder="filter_placeholder" aria-label="Liste filtern…" data-i18n-aria-label="filter_placeholder">
+            <select id="filterMode" style="padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)" aria-label="Nach Modus filtern" data-i18n-aria-label="filter_mode_aria">
+              <option value="" data-i18n="filter_all_modes">Alle Modi</option>
+              <option value="general" data-i18n-mode-label="general">📋 Allgemein</option>
+              <option value="delivery" data-i18n-mode-label="delivery">📦 Lieferung</option>
+              <option value="stock" data-i18n-mode-label="stock">🗃️ Lager</option>
+              <option value="maintenance" data-i18n-mode-label="maintenance">🔧 Wartung</option>
             </select>
           </div>
         </div>
         <div class="card">
-          <ul id="scanList" class="list" aria-live="polite" aria-relevant="additions"></ul>
+          <ul id="scanList" class="list" aria-live="polite" aria-relevant="additions" aria-label="Liste der gescannten Codes" data-i18n-aria-label="aria_scan_list"></ul>
         </div>
       </section>
 
-      <section id="panel-export" class="panel grid" role="tabpanel" aria-labelledby="tab-export" hidden>
+      <section id="panel-export" class="panel grid" role="tabpanel" aria-labelledby="tab-export" hidden tabindex="0">
         <div class="card export-actions">
-          <button id="exportCsvBtn" class="btn ghost">CSV exportieren</button>
-          <button id="shareCsvBtn" class="btn ghost">Per Mail/Share senden</button>
-          <button id="backupJsonBtn" class="btn ghost">Backup (JSON)</button>
-          <button id="restoreJsonBtn" class="btn ghost">Wiederherstellen (JSON)</button>
-          <button id="clearAllBtn" class="btn danger">Alles löschen</button>
+          <button id="exportCsvBtn" class="btn ghost" data-i18n="btn_export_csv">CSV exportieren</button>
+          <button id="shareCsvBtn" class="btn ghost" data-i18n="btn_share">Per Mail/Share senden</button>
+          <button id="backupJsonBtn" class="btn ghost" data-i18n="btn_backup">Backup (JSON)</button>
+          <button id="restoreJsonBtn" class="btn ghost" data-i18n="btn_restore">Wiederherstellen (JSON)</button>
+          <button id="clearAllBtn" class="btn danger" data-i18n="btn_clear_all">Alles löschen</button>
         </div>
         <div class="card" id="statsCard"></div>
-        <div class="card" id="previewCard"><em>CSV Vorschau erscheint nach erstem Scan.</em></div>
+        <div class="card" id="previewCard"><em data-i18n="csv_preview_empty">CSV Vorschau erscheint nach erstem Scan.</em></div>
       </section>
 
-      <section id="panel-config" class="panel grid" role="tabpanel" aria-labelledby="tab-config" hidden>
+      <section id="panel-config" class="panel grid" role="tabpanel" aria-labelledby="tab-config" hidden tabindex="0">
         <div class="card">
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-            <strong>Erkannte Formate</strong>
+            <strong data-i18n="formats_heading">Erkannte Formate</strong>
             <span id="supportedFormats" class="meta" style="margin-left:auto"></span>
           </div>
         </div>
@@ -231,27 +235,27 @@
           <div class="fmt-grid" id="fmtGrid"></div>
         </div>
         <div class="card" style="display:flex;gap:12px;flex-wrap:wrap">
-          <button id="applyFormatsBtn" class="btn primary">Übernehmen</button>
-          <button id="selectAllBtn" class="btn ghost">Alle</button>
-          <button id="selectNoneBtn" class="btn ghost">Keine</button>
-          <span class="meta">Tipp: Änderungen wirken beim nächsten Scan-Start. „Übernehmen“ stoppt/ startet bei Bedarf automatisch.</span>
+          <button id="applyFormatsBtn" class="btn primary" data-i18n="btn_apply_formats">Übernehmen</button>
+          <button id="selectAllBtn" class="btn ghost" data-i18n="btn_select_all">Alle</button>
+          <button id="selectNoneBtn" class="btn ghost" data-i18n="btn_select_none">Keine</button>
+          <span class="meta" data-i18n="formats_tip">Tipp: Änderungen wirken beim nächsten Scan-Start. „Übernehmen“ stoppt/ startet bei Bedarf automatisch.</span>
         </div>
         <div class="card">
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <strong>🔗 Sync-Backend (Webhook)</strong>
+            <strong data-i18n="webhook_heading">🔗 Sync-Backend (Webhook)</strong>
           </div>
-          <p class="meta" style="margin:6px 0 10px">Jeder abgeschlossene Scan wird als HTTP&nbsp;POST (JSON) an diese URL gesendet. Leer lassen zum Deaktivieren.</p>
+          <p class="meta" style="margin:6px 0 10px" data-i18n="webhook_desc">Jeder abgeschlossene Scan wird als HTTP&nbsp;POST (JSON) an diese URL gesendet. Leer lassen zum Deaktivieren.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <input id="webhookUrl" type="url" placeholder="https://example.com/api/scan" style="flex:1;min-width:200px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)">
-            <button id="saveWebhookBtn" class="btn primary">Speichern</button>
-            <button id="testWebhookBtn" class="btn ghost">Testen</button>
+            <input id="webhookUrl" type="url" placeholder="https://example.com/api/scan" style="flex:1;min-width:200px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)" data-i18n-placeholder="webhook_placeholder" aria-label="https://example.com/api/scan" data-i18n-aria-label="webhook_placeholder">
+            <button id="saveWebhookBtn" class="btn primary" data-i18n="btn_save_webhook">Speichern</button>
+            <button id="testWebhookBtn" class="btn ghost" data-i18n="btn_test_webhook">Testen</button>
           </div>
           <span id="webhookStatus" class="meta" style="margin-top:8px;display:block" aria-live="polite"></span>
         </div>
       </section>
     </main>
 
-    <footer class="footer">© Barcode-Logger • PWA • ZXing • Auto/Light/Dark</footer>
+    <footer class="footer" data-i18n="footer_text">© Barcode-Logger • PWA • ZXing • Auto/Light/Dark</footer>
   </div>
 
   <script>
@@ -264,6 +268,164 @@
     const LS_KEY_FORMATS = 'barcode_logger_formats';
     const LS_KEY_MODE = 'barcode_logger_mode';
     const LS_KEY_WEBHOOK = 'barcode_logger_webhook';
+    const LS_KEY_LANG = 'barcode_logger_lang';
+
+    /* ---------- TRANSLATIONS ---------- */
+    const TRANSLATIONS = {
+      de: {
+        tab_scan:'Scan', tab_list:'Liste', tab_export:'Export', tab_config:'Konfig',
+        theme_label:'Darstellung', theme_auto:'Auto', theme_light:'Hell', theme_dark:'Dunkel',
+        lang_label:'Sprache',
+        mode_label:'Modus', mode_seg_aria:'Scan-Modus',
+        track_location:'Standort mitschreiben', allow_dupes:'Dubletten erlauben', beep_on:'Akustisches Feedback',
+        btn_start:'Start', btn_stop:'Stopp', btn_clear:'Liste leeren',
+        torch_title:'Taschenlampe', torch_off:'🔦 Aus', torch_on:'🔦 An',
+        skip_btn:'✕ Überspringen',
+        mode_general:'📋 Allgemein', mode_delivery:'📦 Lieferung',
+        mode_stock:'🗃️ Lager', mode_maintenance:'🔧 Wartung',
+        prompt_general:'Beliebigen Code scannen…',
+        prompt_delivery:'Paket-Barcode / QR-Code scannen…',
+        prompt_stock:'Artikel-EAN / Regalcode scannen…',
+        prompt_maintenance:'Equipment-Barcode / Asset-Tag scannen…',
+        cta_general:'💾 Speichern', cta_delivery:'✅ Zugestellt',
+        cta_stock:'📥 Einbuchen', cta_maintenance:'🔧 Protokollieren',
+        field_qty:'Menge', field_recipient:'Empfänger', field_reference:'Referenz',
+        field_notes:'Notizen', field_shelf:'Lagerplatz', field_workType:'Art',
+        field_technician:'Techniker', field_status:'Status',
+        ph_notes_general:'Optionale Notiz…', ph_qty:'1',
+        ph_recipient:'Name des Empfängers…',
+        ph_reference:'Auftragsnr., Lieferschein…',
+        ph_notes_delivery:'z.B. Abstellgenehmigung…',
+        ph_shelf:'z.B. A1-03…',
+        ph_reference_stock:'Lieferschein, Bestellnr.…',
+        ph_notes_stock:'Optional…',
+        ph_technician:'Name…', ph_notes_maintenance:'Details zur Arbeit…',
+        wt_inspection:'Inspektion', wt_repair:'Reparatur', wt_replacement:'Austausch',
+        wt_check:'Prüfung', wt_cleaning:'Reinigung',
+        st_open:'offen', st_inprogress:'in Bearbeitung', st_done:'abgeschlossen',
+        list_heading:'Gescannte Codes', filter_placeholder:'Liste filtern…',
+        filter_all_modes:'Alle Modi', filter_mode_aria:'Nach Modus filtern',
+        btn_export_csv:'CSV exportieren', btn_share:'Per Mail/Share senden',
+        btn_backup:'Backup (JSON)', btn_restore:'Wiederherstellen (JSON)',
+        btn_clear_all:'Alles löschen',
+        csv_preview_empty:'CSV Vorschau erscheint nach erstem Scan.',
+        formats_heading:'Erkannte Formate',
+        btn_apply_formats:'Übernehmen', btn_select_all:'Alle', btn_select_none:'Keine',
+        formats_tip:'Tipp: Änderungen wirken beim nächsten Scan-Start. „Übernehmen“ stoppt/ startet bei Bedarf automatisch.',
+        webhook_heading:'🔗 Sync-Backend (Webhook)',
+        webhook_desc:'Jeder abgeschlossene Scan wird als HTTP POST (JSON) an diese URL gesendet. Leer lassen zum Deaktivieren.',
+        webhook_placeholder:'https://example.com/api/scan',
+        btn_save_webhook:'Speichern', btn_test_webhook:'Testen',
+        stats_total:'Gesamt:', stats_unique:'Einzigartig:', stats_last:'Letzter Scan:',
+        stats_modes_heading:'Modi', stats_formats_heading:'Formate',
+        footer_text:'© Barcode-Logger • PWA • ZXing • Auto/Light/Dark',
+        camera_error:'Kamera konnte nicht gestartet werden. Prüfe HTTPS/Browser-Berechtigung.',
+        camera_starting:'Starte Kamera…',
+        formats_applied:'Format-Einstellungen übernommen.',
+        backup_restored:'Backup wiederhergestellt.',
+        backup_failed:'Wiederherstellen fehlgeschlagen.',
+        invalid_format:'Ungültiges Format',
+        confirm_clear_all:'Wirklich alle Einträge löschen?',
+        web_share_available:'📤 Web Share verfügbar • ',
+        camera_active:'📷 Kamera aktiv',
+        torch_available:'🔦 Taschenlampe verfügbar',
+        torch_unavailable:'🔦 Taschenlampe nicht verfügbar',
+        webhook_saved:'💾 URL gespeichert.',
+        webhook_disabled:'🗑️ Webhook deaktiviert.',
+        webhook_enter_url:'⚠️ Bitte zuerst URL eingeben und speichern.',
+        webhook_sending:'⏳ Sende Testanfrage…',
+        webhook_ok:'✅ Test erfolgreich',
+        webhook_error:'❌ Verbindungsfehler',
+        webhook_http_error:'⚠️ HTTP',
+        webhook_sent:'✅ Gesendet',
+        mode_stats_today:'heute', mode_stats_total:'gesamt',
+        mode_stats_with_loc:'mit Standort',
+        mode_stats_bookings:'Buchungen heute', mode_stats_skus:'SKUs',
+        mode_stats_qty:'Stk. gesamt', mode_stats_open:'offen',
+        mode_stats_done:'abgeschlossen',
+        aria_main_tabs:'Hauptmodi', aria_camera:'Live-Kamera',
+        aria_scan_list:'Liste der gescannten Codes',
+        aria_mode_banner:'Modus-Status'
+      },
+      en: {
+        tab_scan:'Scan', tab_list:'List', tab_export:'Export', tab_config:'Config',
+        theme_label:'Appearance', theme_auto:'Auto', theme_light:'Light', theme_dark:'Dark',
+        lang_label:'Language',
+        mode_label:'Mode', mode_seg_aria:'Scan mode',
+        track_location:'Track location', allow_dupes:'Allow duplicates', beep_on:'Audio feedback',
+        btn_start:'Start', btn_stop:'Stop', btn_clear:'Clear list',
+        torch_title:'Flashlight', torch_off:'🔦 Off', torch_on:'🔦 On',
+        skip_btn:'✕ Skip',
+        mode_general:'📋 General', mode_delivery:'📦 Delivery',
+        mode_stock:'🗃️ Stock', mode_maintenance:'🔧 Maintenance',
+        prompt_general:'Scan any barcode…',
+        prompt_delivery:'Scan parcel barcode / QR code…',
+        prompt_stock:'Scan item EAN / shelf code…',
+        prompt_maintenance:'Scan equipment barcode / asset tag…',
+        cta_general:'💾 Save', cta_delivery:'✅ Delivered',
+        cta_stock:'📥 Book in', cta_maintenance:'🔧 Log',
+        field_qty:'Quantity', field_recipient:'Recipient', field_reference:'Reference',
+        field_notes:'Notes', field_shelf:'Shelf', field_workType:'Type',
+        field_technician:'Technician', field_status:'Status',
+        ph_notes_general:'Optional note…', ph_qty:'1',
+        ph_recipient:'Recipient name…',
+        ph_reference:'Order no., delivery note…',
+        ph_notes_delivery:'e.g. safe place…',
+        ph_shelf:'e.g. A1-03…',
+        ph_reference_stock:'Delivery note, order no.…',
+        ph_notes_stock:'Optional…',
+        ph_technician:'Name…', ph_notes_maintenance:'Work details…',
+        wt_inspection:'Inspection', wt_repair:'Repair', wt_replacement:'Replacement',
+        wt_check:'Check', wt_cleaning:'Cleaning',
+        st_open:'open', st_inprogress:'in progress', st_done:'completed',
+        list_heading:'Scanned Codes', filter_placeholder:'Filter list…',
+        filter_all_modes:'All modes', filter_mode_aria:'Filter by mode',
+        btn_export_csv:'Export CSV', btn_share:'Send via Mail/Share',
+        btn_backup:'Backup (JSON)', btn_restore:'Restore (JSON)',
+        btn_clear_all:'Delete all',
+        csv_preview_empty:'CSV preview appears after first scan.',
+        formats_heading:'Detected Formats',
+        btn_apply_formats:'Apply', btn_select_all:'All', btn_select_none:'None',
+        formats_tip:'Tip: Changes take effect at the next scan start. "Apply" stops/starts automatically if needed.',
+        webhook_heading:'🔗 Sync Backend (Webhook)',
+        webhook_desc:'Each completed scan is sent as HTTP POST (JSON) to this URL. Leave empty to disable.',
+        webhook_placeholder:'https://example.com/api/scan',
+        btn_save_webhook:'Save', btn_test_webhook:'Test',
+        stats_total:'Total:', stats_unique:'Unique:', stats_last:'Last scan:',
+        stats_modes_heading:'Modes', stats_formats_heading:'Formats',
+        footer_text:'© Barcode-Logger • PWA • ZXing • Auto/Light/Dark',
+        camera_error:'Could not start camera. Check HTTPS/browser permission.',
+        camera_starting:'Starting camera…',
+        formats_applied:'Format settings applied.',
+        backup_restored:'Backup restored.',
+        backup_failed:'Restore failed.',
+        invalid_format:'Invalid format',
+        confirm_clear_all:'Really delete all entries?',
+        web_share_available:'📤 Web Share available • ',
+        camera_active:'📷 Camera active',
+        torch_available:'🔦 Flashlight available',
+        torch_unavailable:'🔦 Flashlight unavailable',
+        webhook_saved:'💾 URL saved.',
+        webhook_disabled:'🗑️ Webhook disabled.',
+        webhook_enter_url:'⚠️ Please enter and save a URL first.',
+        webhook_sending:'⏳ Sending test request…',
+        webhook_ok:'✅ Test successful',
+        webhook_error:'❌ Connection error',
+        webhook_http_error:'⚠️ HTTP',
+        webhook_sent:'✅ Sent',
+        mode_stats_today:'today', mode_stats_total:'total',
+        mode_stats_with_loc:'with location',
+        mode_stats_bookings:'bookings today', mode_stats_skus:'SKUs',
+        mode_stats_qty:'items total', mode_stats_open:'open',
+        mode_stats_done:'completed',
+        aria_main_tabs:'Main tabs', aria_camera:'Live camera',
+        aria_scan_list:'List of scanned codes',
+        aria_mode_banner:'Mode status'
+      }
+    };
+    let currentLang = localStorage.getItem(LS_KEY_LANG) || 'de';
+    function t(key){ return (TRANSLATIONS[currentLang]||TRANSLATIONS.de)[key] || TRANSLATIONS.de[key] || key; }
+
     const DEFAULT_MODE = 'general';
     let scans = loadScans();
 
@@ -352,6 +514,64 @@
     }
 
     /* ---------- MODE ---------- */
+    /* ---------- MODES (defined before initMode to avoid TDZ) ---------- */
+    const MODES = {
+      general: {
+        get label(){ return t('mode_general'); }, color:'#6b7280',
+        get prompt(){ return t('prompt_general'); },
+        get saveCta(){ return t('cta_general'); },
+        autoLocation:false, autoAllowDupes:false,
+        stats(s){ const m=_modeScans(s,'general'); return [`${_todayCount(m)} ${t('mode_stats_today')}`,`${m.length} ${t('mode_stats_total')}`]; }
+      },
+      delivery: {
+        get label(){ return t('mode_delivery'); }, color:'#3b82f6',
+        get prompt(){ return t('prompt_delivery'); },
+        get saveCta(){ return t('cta_delivery'); },
+        autoLocation:true, autoAllowDupes:true,
+        stats(s){ const m=_modeScans(s,'delivery'); const loc=m.filter(x=>x.lat!=null).length; return [`${_todayCount(m)} ${t('mode_stats_today')}`,`${m.length} ${t('mode_stats_total')}`,`📍 ${loc} ${t('mode_stats_with_loc')}`]; }
+      },
+      stock: {
+        get label(){ return t('mode_stock'); }, color:'#16a34a',
+        get prompt(){ return t('prompt_stock'); },
+        get saveCta(){ return t('cta_stock'); },
+        autoLocation:false, autoAllowDupes:false,
+        stats(s){ const m=_modeScans(s,'stock'); const qty=m.reduce((a,x)=>a+(x.qty||1),0); return [`${_todayCount(m)} ${t('mode_stats_bookings')}`,`${new Set(m.map(x=>x.code)).size} ${t('mode_stats_skus')}`,`${qty} ${t('mode_stats_qty')}`]; }
+      },
+      maintenance: {
+        get label(){ return t('mode_maintenance'); }, color:'#f59e0b',
+        get prompt(){ return t('prompt_maintenance'); },
+        get saveCta(){ return t('cta_maintenance'); },
+        autoLocation:false, autoAllowDupes:false,
+        stats(s){ const m=_modeScans(s,'maintenance'); const open=m.filter(x=>!x.status||x.status==='offen'||x.status==='in Bearbeitung').length; return [`${_todayCount(m)} ${t('mode_stats_today')}`,`${open} ${t('mode_stats_open')}`,`${m.filter(x=>x.status==='abgeschlossen').length} ${t('mode_stats_done')}`]; }
+      }
+    };
+
+    function getModeFields(){
+      return {
+        general: [
+          { key:'notes', label:t('field_notes'), type:'text', placeholder:t('ph_notes_general') }
+        ],
+        delivery: [
+          { key:'qty',       label:t('field_qty'),       type:'number', placeholder:t('ph_qty') },
+          { key:'recipient', label:t('field_recipient'), type:'text',   placeholder:t('ph_recipient') },
+          { key:'reference', label:t('field_reference'), type:'text',   placeholder:t('ph_reference') },
+          { key:'notes',     label:t('field_notes'),     type:'text',   placeholder:t('ph_notes_delivery') }
+        ],
+        stock: [
+          { key:'qty',       label:t('field_qty'),       type:'number', placeholder:t('ph_qty') },
+          { key:'shelf',     label:t('field_shelf'),     type:'text',   placeholder:t('ph_shelf') },
+          { key:'reference', label:t('field_reference'), type:'text',   placeholder:t('ph_reference_stock') },
+          { key:'notes',     label:t('field_notes'),     type:'text',   placeholder:t('ph_notes_stock') }
+        ],
+        maintenance: [
+          { key:'workType',   label:t('field_workType'),   type:'select', options:[t('wt_inspection'),t('wt_repair'),t('wt_replacement'),t('wt_check'),t('wt_cleaning')] },
+          { key:'technician', label:t('field_technician'), type:'text',   placeholder:t('ph_technician') },
+          { key:'status',     label:t('field_status'),     type:'select', options:[t('st_open'),t('st_inprogress'),t('st_done')] },
+          { key:'notes',      label:t('field_notes'),      type:'text',   placeholder:t('ph_notes_maintenance') }
+        ]
+      };
+    }
+
     initMode();
     function initMode(){
       const seg = $('modeSeg');
@@ -454,65 +674,9 @@
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
     function updateCount(){ countEl.textContent = `(${scans.length})`; }
 
-    // Stats helpers used by MODES.stats() functions
+    // Stats helpers used by MODES.stats() functions (defined here; hoisted as function declarations)
     function _modeScans(s,k){ return s.filter(x=>(x.mode||DEFAULT_MODE)===k); }
     function _todayCount(m){ const t=new Date().toDateString(); return m.filter(x=>new Date(x.ts).toDateString()===t).length; }
-
-    const MODES = {
-      general: {
-        label:'📋 Allgemein', color:'#6b7280',
-        prompt:'Beliebigen Code scannen…',
-        saveCta:'💾 Speichern',
-        autoLocation:false, autoAllowDupes:false,
-        stats(s){ const m=_modeScans(s,'general'); return [`${_todayCount(m)} heute`,`${m.length} gesamt`]; }
-      },
-      delivery: {
-        label:'📦 Lieferung', color:'#3b82f6',
-        prompt:'Paket-Barcode / QR-Code scannen…',
-        saveCta:'✅ Zugestellt',
-        autoLocation:true, autoAllowDupes:true,
-        stats(s){ const m=_modeScans(s,'delivery'); const loc=m.filter(x=>x.lat!=null).length; return [`${_todayCount(m)} heute`,`${m.length} gesamt`,`📍 ${loc} mit Standort`]; }
-      },
-      stock: {
-        label:'🗃️ Lager', color:'#16a34a',
-        prompt:'Artikel-EAN / Regalcode scannen…',
-        saveCta:'📥 Einbuchen',
-        autoLocation:false, autoAllowDupes:false,
-        stats(s){ const m=_modeScans(s,'stock'); const qty=m.reduce((a,x)=>a+(x.qty||1),0); return [`${_todayCount(m)} Buchungen heute`,`${new Set(m.map(x=>x.code)).size} SKUs`,`${qty} Stk. gesamt`]; }
-      },
-      maintenance: {
-        label:'🔧 Wartung', color:'#f59e0b',
-        prompt:'Equipment-Barcode / Asset-Tag scannen…',
-        saveCta:'🔧 Protokollieren',
-        autoLocation:false, autoAllowDupes:false,
-        stats(s){ const m=_modeScans(s,'maintenance'); const open=m.filter(x=>!x.status||x.status==='offen'||x.status==='in Bearbeitung').length; return [`${_todayCount(m)} heute`,`${open} offen`,`${m.filter(x=>x.status==='abgeschlossen').length} abgeschlossen`]; }
-      }
-    };
-    const MODE_LABELS = Object.fromEntries(Object.entries(MODES).map(([k,v])=>[k,v.label]));
-
-    const MODE_FIELDS = {
-      general: [
-        { key:'notes', label:'Notizen', type:'text', placeholder:'Optionale Notiz…' }
-      ],
-      delivery: [
-        { key:'qty',       label:'Menge',     type:'number', placeholder:'1' },
-        { key:'recipient', label:'Empfänger', type:'text',   placeholder:'Name des Empfängers…' },
-        { key:'reference', label:'Referenz',  type:'text',   placeholder:'Auftragsnr., Lieferschein…' },
-        { key:'notes',     label:'Notizen',   type:'text',   placeholder:'z.B. Abstellgenehmigung…' }
-      ],
-      stock: [
-        { key:'qty',       label:'Menge',      type:'number', placeholder:'1' },
-        { key:'shelf',     label:'Lagerplatz', type:'text',   placeholder:'z.B. A1-03…' },
-        { key:'reference', label:'Referenz',   type:'text',   placeholder:'Lieferschein, Bestellnr.…' },
-        { key:'notes',     label:'Notizen',    type:'text',   placeholder:'Optional…' }
-      ],
-      maintenance: [
-        { key:'workType',   label:'Art',       type:'select', options:['Inspektion','Reparatur','Austausch','Prüfung','Reinigung'] },
-        { key:'technician', label:'Techniker', type:'text',   placeholder:'Name…' },
-        { key:'status',     label:'Status',    type:'select', options:['offen','in Bearbeitung','abgeschlossen'] },
-        { key:'notes',      label:'Notizen',   type:'text',   placeholder:'Details zur Arbeit…' }
-      ]
-    };
 
     function appendRow(entry, prepend=false){
       const li = document.createElement('li');
@@ -520,7 +684,7 @@
       li.dataset.code = entry.code;
       const loc = (entry.lat!=null && entry.lon!=null) ? `📍 ${entry.lat.toFixed(5)}, ${entry.lon.toFixed(5)}` : '';
       const modeKey = entry.mode || DEFAULT_MODE;
-      const modeBadge = `<span class="mode-badge mode-badge-${escapeHtml(modeKey)}">${escapeHtml(MODE_LABELS[modeKey]||modeKey)}</span>`;
+      const modeBadge = `<span class="mode-badge mode-badge-${escapeHtml(modeKey)}">${escapeHtml((MODES[modeKey]?.label)||modeKey)}</span>`;
       // Extra fields
       const extraParts = [];
       if (entry.qty != null)        extraParts.push(`<span>📦 ${escapeHtml(String(entry.qty))}</span>`);
@@ -563,11 +727,11 @@
       const modeKey = entry.mode || DEFAULT_MODE;
       const card = $('lastScanCard');
       card.dataset.mode = modeKey;
-      $('lastScanLabel').textContent = MODE_LABELS[modeKey] || modeKey;
+      $('lastScanLabel').textContent = (MODES[modeKey]?.label) || modeKey;
       $('lastScanCode').textContent = entry.code;
       const container = $('lastScanFields');
       container.innerHTML = '';
-      (MODE_FIELDS[modeKey] || MODE_FIELDS[DEFAULT_MODE]).forEach((f, i) => {
+      (getModeFields()[modeKey] || getModeFields()[DEFAULT_MODE]).forEach((f, i) => {
         const row = document.createElement('div');
         row.className = 'field-row';
         const inputId = `lsf_${f.key}_${i}`;
@@ -646,11 +810,11 @@
         });
         const statusEl = $('webhookStatus');
         if (statusEl) statusEl.textContent = resp.ok
-          ? `✅ Gesendet (${new Date().toLocaleTimeString()})`
-          : `⚠️ HTTP ${resp.status}`;
+          ? `${t('webhook_sent')} (${new Date().toLocaleTimeString()})`
+          : `${t('webhook_http_error')} ${resp.status}`;
       } catch(e) {
         const statusEl = $('webhookStatus');
-        if (statusEl) statusEl.textContent = `❌ Verbindungsfehler`;
+        if (statusEl) statusEl.textContent = t('webhook_error');
         console.debug('Webhook failed', e);
       }
     }
@@ -667,11 +831,11 @@
         const val = urlInput.value.trim();
         if (val) localStorage.setItem(LS_KEY_WEBHOOK, val);
         else localStorage.removeItem(LS_KEY_WEBHOOK);
-        $('webhookStatus').textContent = val ? '💾 URL gespeichert.' : '🗑️ Webhook deaktiviert.';
+        $('webhookStatus').textContent = val ? t('webhook_saved') : t('webhook_disabled');
       });
       $('testWebhookBtn').addEventListener('click', async () => {
         const url = urlInput.value.trim();
-        if (!url) { $('webhookStatus').textContent = '⚠️ Bitte zuerst URL eingeben und speichern.'; return; }
+        if (!url) { $('webhookStatus').textContent = t('webhook_enter_url'); return; }
         const testEntry = {
           id: 'test-' + Date.now(),
           code: 'TEST-123',
@@ -681,12 +845,12 @@
           notes: 'Webhook-Test',
           ts: Date.now()
         };
-        $('webhookStatus').textContent = '⏳ Sende Testanfrage…';
+        $('webhookStatus').textContent = t('webhook_sending');
         try {
           const resp = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(testEntry)});
-          $('webhookStatus').textContent = resp.ok ? `✅ Test erfolgreich (HTTP ${resp.status})` : `⚠️ HTTP ${resp.status}`;
+          $('webhookStatus').textContent = resp.ok ? `${t('webhook_ok')} (HTTP ${resp.status})` : `${t('webhook_http_error')} ${resp.status}`;
         } catch(e) {
-          $('webhookStatus').textContent = `❌ Verbindungsfehler: ${e.message}`;
+          $('webhookStatus').textContent = `${t('webhook_error')}: ${e.message}`;
         }
       });
     }
@@ -724,16 +888,16 @@
     /* ---------- TORCH ---------- */
     function setupTorch(track){
       const cap = track?.getCapabilities?.()||{};
-      if (!('torch' in cap)){ disableTorch(); supportNote.textContent = '🔦 Taschenlampe nicht verfügbar'; return; }
+      if (!('torch' in cap)){ disableTorch(); supportNote.textContent = t('torch_unavailable'); return; }
       torchTrack=track; torchBtn.disabled=false;
-      torchBtn.textContent='🔦 Aus'; torchBtn.setAttribute('aria-pressed','false');
-      supportNote.textContent = '🔦 Taschenlampe verfügbar';
+      torchBtn.textContent=t('torch_off'); torchBtn.setAttribute('aria-pressed','false'); torchBtn.setAttribute('aria-label',t('torch_title'));
+      supportNote.textContent = t('torch_available');
       torchBtn.onclick=async()=>{
         try {
           torchOn = torchBtn.getAttribute('aria-pressed')!=='true';
           await torchTrack.applyConstraints({advanced:[{torch:torchOn}]});
           torchBtn.setAttribute('aria-pressed',torchOn?'true':'false');
-          torchBtn.textContent=torchOn?'🔦 An':'🔦 Aus';
+          torchBtn.textContent=torchOn?t('torch_on'):t('torch_off'); torchBtn.setAttribute('aria-label',t('torch_title'));
         }catch(e){ console.debug('Torch toggle failed',e); }
       };
     }
@@ -750,7 +914,7 @@
 
     async function start(){
       if(running) return;
-      running = true; supportNote.textContent = 'Starte Kamera…';
+      running = true; supportNote.textContent = t('camera_starting');
       reader = createReader();
 
       const constraints = {
@@ -803,12 +967,12 @@
         });
 
         startBtn.disabled = true; stopBtn.disabled = false;
-        supportNote.textContent = (navigator.share ? '📤 Web Share verfügbar • ' : '') + '📷 Kamera aktiv';
+        supportNote.textContent = (navigator.share ? t('web_share_available') : '') + t('camera_active');
         startGeoWatch();
 
         document.addEventListener('visibilitychange', visResume, {passive:true});
       } catch (e) {
-        running=false; supportNote.textContent=''; alert('Kamera konnte nicht gestartet werden. Prüfe HTTPS/Browser-Berechtigung.');
+        running=false; supportNote.textContent=''; alert(t('camera_error'));
       }
     }
 
@@ -866,7 +1030,7 @@
     }
 
     function renderPreview(){
-      if (!scans.length){ previewCard.innerHTML = '<em>CSV Vorschau erscheint nach erstem Scan.</em>'; return; }
+      if (!scans.length){ previewCard.innerHTML = `<em>${t('csv_preview_empty')}</em>`; return; }
       const sample = scans.slice(-10);
       const csv = toCsv(sample);
       previewCard.innerHTML = `<pre style="white-space:pre-wrap;margin:0">${escapeHtml(csv)}</pre>`;
@@ -880,18 +1044,18 @@
       const fmtHtml = [...byFmt.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li>${escapeHtml(k)}: <strong>${v}</strong></li>`).join('');
       const byMode = new Map();
       scans.forEach(s => { const m=s.mode||DEFAULT_MODE; byMode.set(m,(byMode.get(m)||0)+1); });
-      const modeHtml = [...byMode.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li><span class="mode-badge mode-badge-${escapeHtml(k)}">${escapeHtml(MODE_LABELS[k]||k)}</span> <strong>${v}</strong></li>`).join('');
+      const modeHtml = [...byMode.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li><span class="mode-badge mode-badge-${escapeHtml(k)}">${escapeHtml((MODES[k]?.label)||k)}</span> <strong>${v}</strong></li>`).join('');
       const last = total ? fmtTime(scans[scans.length-1].ts) : '–';
       statsCard.innerHTML = `
         <div style="display:flex;gap:18px;flex-wrap:wrap">
-          <div><strong>Gesamt:</strong> ${total}</div>
-          <div><strong>Einzigartig:</strong> ${uniq}</div>
-          <div><strong>Letzter Scan:</strong> ${last}</div>
+          <div><strong>${t('stats_total')}</strong> ${total}</div>
+          <div><strong>${t('stats_unique')}</strong> ${uniq}</div>
+          <div><strong>${t('stats_last')}</strong> ${last}</div>
         </div>
         <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
         <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
-          <div><strong>Modi</strong><ul style="margin:8px 0 0;padding-left:18px">${modeHtml||'<li>–</li>'}</ul></div>
-          <div><strong>Formate</strong><ul style="margin:8px 0 0;padding-left:18px">${fmtHtml||'<li>–</li>'}</ul></div>
+          <div><strong>${t('stats_modes_heading')}</strong><ul style="margin:8px 0 0;padding-left:18px">${modeHtml||'<li>–</li>'}</ul></div>
+          <div><strong>${t('stats_formats_heading')}</strong><ul style="margin:8px 0 0;padding-left:18px">${fmtHtml||'<li>–</li>'}</ul></div>
         </div>
       `;
     }
@@ -940,7 +1104,7 @@
         try{
           const text = await f.text();
           const data = JSON.parse(text);
-          if (!Array.isArray(data)) throw new Error('Ungültiges Format');
+          if (!Array.isArray(data)) throw new Error(t('invalid_format'));
           // Merge (einfach anhängen; Duplikate möglich je nach Einstellung)
           scans = data.map(x => ({
             id: x.id || crypto.randomUUID?.(),
@@ -961,14 +1125,14 @@
           saveScans();
           seen = new Set(scans.map(s=>s.code));
           renderList(); renderPreview(); renderStats(); updateCount();
-          alert('Backup wiederhergestellt.');
-        }catch(e){ alert('Wiederherstellen fehlgeschlagen.'); }
+          alert(t('backup_restored'));
+        }catch(e){ alert(t('backup_failed')); }
       };
       inp.click();
     }
 
     function clearAll(){
-      if (!confirm('Wirklich alle Einträge löschen?')) return;
+      if (!confirm(t('confirm_clear_all'))) return;
       scans = []; saveScans(); scanList.innerHTML=''; seen.clear();
       renderPreview(); renderStats(); updateCount();
     }
@@ -1022,7 +1186,7 @@
       if (wasRunning) stop();
       hints = buildHints();
       if (wasRunning) start();
-      alert('Format-Einstellungen übernommen.');
+      alert(t('formats_applied'));
     }
 
     /* ---------- FILTER ---------- */
@@ -1047,10 +1211,56 @@
     $('lastScanClose').addEventListener('click', dismissLastScanCard);
     clearBtn.addEventListener('click', ()=>{ dismissLastScanCard(); scans=[]; saveScans(); renderList(); renderPreview(); renderStats(); seen.clear(); });
 
+    /* ---------- LANG ---------- */
+    function initLang(){
+      const dBtn = $('lang-de');
+      const eBtn = $('lang-en');
+      if (!dBtn || !eBtn) return;
+      function updateBtns(){
+        dBtn.setAttribute('aria-pressed', String(currentLang==='de'));
+        eBtn.setAttribute('aria-pressed', String(currentLang==='en'));
+      }
+      updateBtns();
+      dBtn.addEventListener('click', ()=>{
+        currentLang = 'de';
+        localStorage.setItem(LS_KEY_LANG, 'de');
+        document.documentElement.lang = 'de';
+        updateBtns();
+        applyTranslations();
+      });
+      eBtn.addEventListener('click', ()=>{
+        currentLang = 'en';
+        localStorage.setItem(LS_KEY_LANG, 'en');
+        document.documentElement.lang = 'en';
+        updateBtns();
+        applyTranslations();
+      });
+    }
+
+    function applyTranslations(){
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t(el.dataset.i18n);
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.dataset.i18nPlaceholder);
+      });
+      document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+        el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel));
+      });
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        el.title = t(el.dataset.i18nTitle);
+      });
+      document.querySelectorAll('[data-i18n-mode-label]').forEach(el => {
+        el.textContent = t('mode_' + el.dataset.i18nModeLabel);
+      });
+      renderModeBanner(); renderList(); renderStats(); renderPreview();
+    }
+
     /* ---------- INIT ---------- */
     (function init(){
       renderList(); renderPreview(); renderStats(); updateCount(); renderModeBanner();
       initWebhookConfig();
+      initLang(); applyTranslations();
       // Auto-Start sanft versuchen; auf Mobilgeräten ist ggf. ein Tap nötig
       try{ start(); }catch{}
     })();
