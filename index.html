@@ -3,273 +3,454 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0b0c">
-  <meta name="description" content="Barcode-Scanner & Logger – Tabs (Scan/Liste/Export/Konfig), CSV, Share (Mail), Standort, PWA, Theme Auto/Light/Dark.">
+  <meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Barcode-Scanner &amp; Logger – Scan/Liste/Export/Konfig, CSV, Share, Standort, PWA.">
   <title>Barcode-Logger</title>
-
-  <!-- PWA (optional, falls vorhanden) -->
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png" sizes="192x192">
   <link rel="icon" href="icon-512.png" sizes="512x512">
-
-  <!-- ZXing: sofort laden, damit BrowserMultiFormatReader garantiert verfügbar ist -->
+  <link rel="apple-touch-icon" href="icon-192.png">
   <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
-
   <style>
+    /* ── Design tokens ── */
     :root {
-      --bg: #f7f7f8; --elev: #ffffff; --text:#0b0b0c; --muted:#5b5d63; --border:#e7e7ea; --card:#ffffff;
-      --primary:#3b82f6; --danger:#ef4444; --ok:#16a34a; --shadow:0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.06);
+      --bg:#f2f2f7; --elev:#ffffff; --elev2:#f2f2f7; --text:#1c1c1e; --muted:#6c6c70;
+      --border:#e5e5ea; --card:#ffffff;
+      --primary:#007aff; --danger:#ff3b30; --ok:#34c759; --warn:#ff9500;
+      --shadow-sm:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.06);
+      --shadow-md:0 4px 16px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
+      --r-sm:10px; --r-md:14px; --r-lg:20px; --r-pill:999px;
+      --nav-h:56px; --header-h:56px;
+      --safe-top:env(safe-area-inset-top,0px);
+      --safe-bottom:env(safe-area-inset-bottom,0px);
+      --safe-left:env(safe-area-inset-left,0px);
+      --safe-right:env(safe-area-inset-right,0px);
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg:#0b0b0c; --elev:#121214; --text:#f3f3f4; --muted:#9ca3af; --border:#222226; --card:#1a1a1c;
-        --primary:#3b82f6; --danger:#ef4444; --ok:#22c55e; --shadow:0 1px 2px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.45);
+    @media(prefers-color-scheme:dark){
+      :root{
+        --bg:#000; --elev:#1c1c1e; --elev2:#2c2c2e; --text:#fff; --muted:#8e8e93;
+        --border:#38383a; --card:#1c1c1e;
+        --primary:#0a84ff; --danger:#ff453a; --ok:#30d158; --warn:#ff9f0a;
+        --shadow-sm:0 1px 3px rgba(0,0,0,.25),0 4px 12px rgba(0,0,0,.25);
+        --shadow-md:0 4px 16px rgba(0,0,0,.4),0 2px 4px rgba(0,0,0,.25);
       }
     }
-    body[data-theme="light"]{--bg:#f7f7f8;--elev:#ffffff;--text:#0b0b0c;--muted:#5b5d63;--border:#e7e7ea;--card:#ffffff;}
-    body[data-theme="dark"]{--bg:#0b0b0c;--elev:#121214;--text:#f3f3f4;--muted:#9ca3af;--border:#222226;--card:#1a1a1c;}
+    body[data-theme="light"]{--bg:#f2f2f7;--elev:#fff;--elev2:#f2f2f7;--text:#1c1c1e;--muted:#6c6c70;--border:#e5e5ea;--card:#fff;--primary:#007aff;--danger:#ff3b30;--ok:#34c759;--warn:#ff9500;--shadow-sm:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.06);--shadow-md:0 4px 16px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);}
+    body[data-theme="dark"]{--bg:#000;--elev:#1c1c1e;--elev2:#2c2c2e;--text:#fff;--muted:#8e8e93;--border:#38383a;--card:#1c1c1e;--primary:#0a84ff;--danger:#ff453a;--ok:#30d158;--warn:#ff9f0a;--shadow-sm:0 1px 3px rgba(0,0,0,.25),0 4px 12px rgba(0,0,0,.25);--shadow-md:0 4px 16px rgba(0,0,0,.4),0 2px 4px rgba(0,0,0,.25);}
 
-    *{box-sizing:border-box}
+    /* ── Reset ── */
+    *,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
     html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
     a{color:var(--primary);text-decoration:none}
-    [hidden]{display:none !important}
-    .app{min-height:100%;display:grid;grid-template-rows:auto 1fr auto}
+    [hidden]{display:none!important}
+    input,select,textarea,button{font:inherit}
 
-    .appbar{position:sticky;top:0;z-index:20;background:var(--elev);box-shadow:var(--shadow);border-bottom:1px solid var(--border)}
-    .appbar-inner{display:flex;align-items:center;gap:12px;padding:10px 12px;max-width:1200px;margin:0 auto}
-    .brand{font-weight:800;letter-spacing:.2px}
-    .spacer{flex:1}
-    .seg{display:inline-flex;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
-    .seg button{border:0;background:transparent;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:700}
-    .seg button[aria-selected="true"]{background:var(--primary);color:white}
-    .seg button:focus-visible{outline:2px solid var(--primary)}
+    /* ── App shell ── */
+    .app{display:flex;flex-direction:column;min-height:100dvh;min-height:100vh;padding-top:var(--safe-top)}
 
-    .theme{display:inline-flex;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-left:8px}
-    .theme button{border:0;background:transparent;padding:8px 12px;cursor:pointer;color:var(--muted);font-weight:700}
-    .theme button[aria-pressed="true"]{background:var(--card);color:var(--text)}
+    /* ── Header ── */
+    .appbar{position:sticky;top:0;top:var(--safe-top);z-index:40;height:var(--header-h);background:color-mix(in srgb,var(--elev) 88%,transparent);-webkit-backdrop-filter:blur(20px) saturate(1.8);backdrop-filter:blur(20px) saturate(1.8);border-bottom:1px solid var(--border)}
+    .appbar-inner{display:flex;align-items:center;gap:8px;height:100%;padding:0 16px;padding-left:max(16px,var(--safe-left));padding-right:max(16px,var(--safe-right));max-width:900px;margin:0 auto;width:100%}
+    .brand{font-size:17px;font-weight:700;letter-spacing:-.3px;flex:1}
+    .ctrl-group{display:inline-flex;background:var(--elev2);border:1px solid var(--border);border-radius:var(--r-pill);overflow:hidden}
+    .ctrl-group button{border:0;background:transparent;padding:6px 11px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;min-height:32px;transition:background .15s,color .15s}
+    .ctrl-group button[aria-pressed="true"]{background:var(--primary);color:#fff;border-radius:var(--r-pill)}
+    .ctrl-group button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
-    .content{max-width:1200px;margin:0 auto;width:100%}
-    .panel{padding:14px}
-    .grid{display:grid;gap:12px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;box-shadow:var(--shadow)}
+    /* ── Bottom nav ── */
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:40;height:calc(var(--nav-h) + var(--safe-bottom));padding-bottom:var(--safe-bottom);background:color-mix(in srgb,var(--elev) 88%,transparent);-webkit-backdrop-filter:blur(20px) saturate(1.8);backdrop-filter:blur(20px) saturate(1.8);border-top:1px solid var(--border);display:flex;align-items:stretch}
+    .nav-items{display:flex;width:100%;max-width:900px;margin:0 auto;padding-left:var(--safe-left);padding-right:var(--safe-right)}
+    .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:10px;font-weight:500;padding:6px 4px;transition:color .15s;position:relative}
+    .nav-item[aria-selected="true"]{color:var(--primary)}
+    .nav-icon{font-size:22px;line-height:1;transition:transform .15s}
+    .nav-item[aria-selected="true"] .nav-icon{transform:scale(1.1)}
+    .nav-badge{position:absolute;top:4px;right:calc(50% - 18px);background:var(--danger);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:var(--r-pill);padding:0 4px;display:flex;align-items:center;justify-content:center}
+    .nav-item:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;border-radius:var(--r-sm)}
 
-    .viewer{position:relative;display:grid;place-items:center;overflow:hidden;border-radius:14px}
-    video{width:100%;height:54vh;object-fit:cover;background:#000;border-radius:12px}
-    .frame{position:absolute;inset:8% 10%;border-radius:18px;outline:3px solid rgba(255,255,255,.18);box-shadow:0 0 0 9999px rgba(0,0,0,.25) inset;pointer-events:none}
-    .torch{position:absolute;right:12px;bottom:12px;z-index:5;padding:10px 12px;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:700}
-    .torch[disabled]{opacity:.5}
+    /* ── Content ── */
+    .content{flex:1;padding-bottom:calc(var(--nav-h) + var(--safe-bottom) + 8px);overflow-x:hidden}
+    .panel{display:grid;gap:12px;padding:12px;padding-left:max(12px,var(--safe-left));padding-right:max(12px,var(--safe-right));max-width:900px;margin:0 auto}
 
-    .controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-    .btn{height:46px;border-radius:12px;border:1px solid var(--border);background:var(--elev);color:var(--text);font-weight:800;cursor:pointer}
-    .btn.primary{background:var(--primary);border-color:var(--primary);color:white}
-    .btn.danger{background:var(--danger);border-color:var(--danger);color:white}
-    .btn.ghost{background:var(--elev)}
+    /* ── Cards ── */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-sm)}
 
-    .toggles{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-    .switch{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:12px;background:var(--elev);color:var(--text)}
+    /* ── Camera ── */
+    .viewer{position:relative;overflow:hidden;border-radius:var(--r-lg);background:#000;aspect-ratio:4/3}
+    @media(max-height:700px){.viewer{aspect-ratio:16/9}}
+    video{width:100%;height:100%;object-fit:cover;display:block}
+    .scan-frame{position:absolute;inset:0;pointer-events:none}
+    .scan-frame::before{content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:62%;aspect-ratio:1;border-radius:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.42)}
+    .scan-corner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:62%;aspect-ratio:1;pointer-events:none}
+    .scan-corner::before,.scan-corner::after,.scan-corner>span::before,.scan-corner>span::after{content:'';position:absolute;width:22px;height:22px;border-color:rgba(255,255,255,.95);border-style:solid}
+    .scan-corner::before{top:0;left:0;border-width:3px 0 0 3px;border-radius:8px 0 0 0}
+    .scan-corner::after{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 8px 0 0}
+    .scan-corner>span::before{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 8px}
+    .scan-corner>span::after{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 8px 0}
+    @keyframes scanFlash{0%{opacity:0}15%{opacity:.65}100%{opacity:0}}
+    .scan-flash{position:absolute;inset:0;background:#fff;pointer-events:none;opacity:0;border-radius:var(--r-lg)}
+    .scan-flash.active{animation:scanFlash .45s ease-out forwards}
+    .torch{position:absolute;bottom:14px;right:14px;z-index:5;width:44px;height:44px;border-radius:var(--r-pill);background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s}
+    .torch[disabled]{opacity:.4;pointer-events:none}
+    .torch[aria-pressed="true"]{background:rgba(255,215,0,.35)}
+    .cam-status{position:absolute;bottom:14px;left:14px;z-index:5;font-size:11px;font-weight:600;color:rgba(255,255,255,.88);background:rgba(0,0,0,.45);border-radius:var(--r-pill);padding:4px 10px;max-width:calc(100% - 80px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cam-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:12px}
 
-    .list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-    .row{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:grid;gap:4px}
-    .row .top{display:flex;justify-content:space-between;gap:10px;align-items:center}
-    .code{font-weight:900;word-break:break-word}
-    .meta{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+    /* ── Buttons ── */
+    .btn{height:48px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--elev);color:var(--text);font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 16px;transition:opacity .1s,transform .1s;white-space:nowrap}
+    .btn:active{opacity:.75;transform:scale(.97)}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+    .btn.ghost{background:var(--elev2)}
+    .btn.full{width:100%}
+    .btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
-    .export-actions{display:flex;gap:12px;flex-wrap:wrap}
-    .fmt-grid{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
-    .fmt-item{display:flex;gap:8px;align-items:center;border:1px solid var(--border);background:var(--elev);padding:8px 10px;border-radius:12px}
+    /* ── Mode selector ── */
+    .mode-scroll-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:14px 14px 0}
+    .mode-scroll-wrap::-webkit-scrollbar{display:none}
+    .mode-seg{display:inline-flex;gap:8px;min-width:max-content;padding-bottom:14px}
+    .mode-seg button{height:36px;border:1.5px solid var(--border);background:var(--elev2);color:var(--muted);padding:0 14px;border-radius:var(--r-pill);cursor:pointer;font-size:13px;font-weight:700;white-space:nowrap;transition:background .15s,color .15s,border-color .15s,transform .1s}
+    .mode-seg button:active{transform:scale(.95)}
+    .mode-seg button[aria-pressed="true"]{color:#fff;border-color:transparent}
+    .mode-seg button[data-mode="general"][aria-pressed="true"]{background:#6b7280}
+    .mode-seg button[data-mode="delivery"][aria-pressed="true"]{background:var(--primary)}
+    .mode-seg button[data-mode="stock"][aria-pressed="true"]{background:#16a34a}
+    .mode-seg button[data-mode="maintenance"][aria-pressed="true"]{background:var(--warn);color:#000}
+    .mode-seg button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 
-    .footer{padding:14px;color:var(--muted);text-align:center;border-top:1px solid var(--border)}
-
-    .mode-seg{display:inline-flex;flex-wrap:wrap;gap:6px}
-    .mode-seg button{border:1px solid var(--border);background:var(--elev);color:var(--muted);padding:8px 14px;border-radius:12px;cursor:pointer;font-weight:700;transition:background .15s,color .15s}
-    .mode-seg button[aria-pressed="true"]{color:white}
-    .mode-seg button[data-mode="general"][aria-pressed="true"]{background:#6b7280;border-color:#6b7280}
-    .mode-seg button[data-mode="delivery"][aria-pressed="true"]{background:#3b82f6;border-color:#3b82f6}
-    .mode-seg button[data-mode="stock"][aria-pressed="true"]{background:#16a34a;border-color:#16a34a}
-    .mode-seg button[data-mode="maintenance"][aria-pressed="true"]{background:#f59e0b;border-color:#f59e0b;color:#000}
-
-    .mode-badge{display:inline-block;font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px;color:white;vertical-align:middle}
-    .mode-badge-general{background:#6b7280}
-    .mode-badge-delivery{background:#3b82f6}
-    .mode-badge-stock{background:#16a34a}
-    .mode-badge-maintenance{background:#f59e0b;color:#000}
-
-    .detail-card{border-left:4px solid var(--primary)}
-    .detail-card[data-mode="delivery"]{border-left-color:#3b82f6}
-    .detail-card[data-mode="stock"]{border-left-color:#16a34a}
-    .detail-card[data-mode="maintenance"]{border-left-color:#f59e0b}
-    .field-row{display:flex;gap:8px;align-items:center}
-    .field-row label{min-width:90px;font-size:13px;color:var(--muted);font-weight:600}
-    .field-row input,.field-row select{flex:1;padding:7px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text);font-size:14px}
-    .extra-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px}
-    .extra-meta span{background:var(--bg);border-radius:6px;padding:1px 6px}
-
-    .mode-banner{transition:border-color .2s}
-    .mode-banner[data-mode="general"]{border-left:4px solid #6b7280}
-    .mode-banner[data-mode="delivery"]{border-left:4px solid #3b82f6}
-    .mode-banner[data-mode="stock"]{border-left:4px solid #16a34a}
-    .mode-banner[data-mode="maintenance"]{border-left:4px solid #f59e0b}
-    .mode-banner-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
-    .mode-banner-title{font-size:16px;font-weight:800}
+    /* ── Mode banner ── */
+    .mode-banner{padding:12px 14px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--card);box-shadow:var(--shadow-sm);border-left:4px solid #6b7280;transition:border-left-color .25s;margin:0 14px 14px}
+    .mode-banner[data-mode="general"]{border-left-color:#6b7280}
+    .mode-banner[data-mode="delivery"]{border-left-color:var(--primary)}
+    .mode-banner[data-mode="stock"]{border-left-color:#16a34a}
+    .mode-banner[data-mode="maintenance"]{border-left-color:var(--warn)}
+    .mode-banner-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+    .mode-banner-title{font-size:15px;font-weight:800}
     .mode-banner-stats{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
-    .stat-pill{display:inline-flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-size:12px;font-weight:700}
-    .mode-banner-prompt{font-size:13px;color:var(--muted);font-style:italic}
+    .stat-pill{display:inline-flex;align-items:center;gap:3px;background:var(--elev2);border:1px solid var(--border);border-radius:var(--r-pill);padding:3px 9px;font-size:11px;font-weight:700}
+    .mode-banner-prompt{font-size:13px;color:var(--muted);font-style:italic;margin:0}
+
+    /* ── Toggles ── */
+    .toggles{display:flex;flex-direction:column;gap:0}
+    .switch-row{display:flex;align-items:center;justify-content:space-between;padding:14px;gap:12px;border-bottom:1px solid var(--border)}
+    .switch-row:last-child{border-bottom:0}
+    .switch-row label{font-size:15px;cursor:pointer;flex:1}
+    .toggle-switch{position:relative;width:51px;height:31px;flex-shrink:0}
+    .toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+    .toggle-track{position:absolute;inset:0;background:var(--border);border-radius:var(--r-pill);transition:background .2s;cursor:pointer}
+    .toggle-switch input:checked+.toggle-track{background:var(--ok)}
+    .toggle-track::after{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
+    .toggle-switch input:checked+.toggle-track::after{transform:translateX(20px)}
+
+    /* ── Detail sheet ── */
+    .sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;opacity:0;transition:opacity .25s;pointer-events:none}
+    .sheet-backdrop.visible{opacity:1;pointer-events:auto}
+    .detail-sheet{position:fixed;bottom:0;left:0;right:0;z-index:51;background:var(--elev);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.18);transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,1);padding-bottom:calc(16px + var(--safe-bottom));max-height:90dvh;max-height:90vh;overflow-y:auto;overscroll-behavior:contain}
+    .detail-sheet.open{transform:translateY(0);transition-timing-function:cubic-bezier(.16,1,.3,1)}
+    .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:var(--r-pill);margin:10px auto 0}
+    .sheet-header{display:flex;align-items:center;gap:10px;padding:14px 16px 10px;border-bottom:1px solid var(--border)}
+    .sheet-mode-label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+    .sheet-code{font-size:17px;font-weight:800;word-break:break-all;flex:1;min-width:0}
+    .sheet-close{width:32px;height:32px;border-radius:var(--r-pill);background:var(--elev2);border:0;color:var(--muted);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .sheet-fields{padding:14px 16px;display:grid;gap:10px}
+    .field-row{display:grid;gap:4px}
+    .field-row label{font-size:12px;font-weight:600;color:var(--muted);padding-left:2px}
+    .field-row input,.field-row select{height:44px;padding:0 12px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--elev2);color:var(--text);font-size:16px;transition:border-color .15s}
+    .field-row input:focus,.field-row select:focus{outline:0;border-color:var(--primary)}
+    .sheet-actions{padding:0 16px;display:grid;gap:10px}
+    .sheet-cta{height:52px;border-radius:var(--r-md);border:0;background:var(--primary);color:#fff;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .1s,transform .1s}
+    .sheet-cta:active{opacity:.8;transform:scale(.98)}
+    .sheet-cta[data-mode="stock"]{background:#16a34a}
+    .sheet-cta[data-mode="maintenance"]{background:var(--warn);color:#000}
+    .sheet-cta[data-mode="delivery"]{background:var(--primary)}
+
+    /* ── List ── */
+    .list-controls{padding:12px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+    .list-controls strong{font-size:17px}
+    .scan-count{background:var(--primary);color:#fff;font-size:11px;font-weight:700;min-width:22px;height:22px;border-radius:var(--r-pill);display:inline-flex;align-items:center;justify-content:center;padding:0 6px}
+    .search-row{padding:10px 14px;display:flex;gap:8px;border-bottom:1px solid var(--border)}
+    .search-input{flex:1;height:38px;padding:0 12px;border-radius:var(--r-pill);border:1.5px solid var(--border);background:var(--elev2);color:var(--text);font-size:15px}
+    .search-input:focus{outline:0;border-color:var(--primary)}
+    .filter-select{height:38px;padding:0 8px;border-radius:var(--r-pill);border:1.5px solid var(--border);background:var(--elev2);color:var(--text);font-size:13px}
+    .filter-select:focus{outline:0;border-color:var(--primary)}
+    .list{list-style:none;margin:0;padding:0}
+    .row{padding:12px 14px;border-bottom:1px solid var(--border);display:grid;gap:4px;transition:background .12s}
+    .row:last-child{border-bottom:0}
+    .row:active{background:var(--elev2)}
+    .row .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+    .code{font-size:15px;font-weight:800;word-break:break-word}
+    .row-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+    .extra-meta{font-size:12px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+    .extra-meta span{background:var(--elev2);border-radius:6px;padding:1px 7px;border:1px solid var(--border)}
+
+    /* ── Mode badges ── */
+    .mode-badge{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:var(--r-pill);color:#fff;white-space:nowrap}
+    .mode-badge-general{background:#6b7280}
+    .mode-badge-delivery{background:var(--primary)}
+    .mode-badge-stock{background:#16a34a}
+    .mode-badge-maintenance{background:var(--warn);color:#000}
+
+    /* ── Export ── */
+    .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px}
+    .action-grid .btn.full{grid-column:1/-1}
+    .stats-section{padding:14px}
+    .stats-row{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px}
+    .stats-kv{display:flex;flex-direction:column;gap:2px}
+    .stats-kv .sv{font-size:24px;font-weight:800}
+    .stats-kv .sk{font-size:12px;color:var(--muted)}
+    .divider{border:0;border-top:1px solid var(--border);margin:0}
+    .preview-section{padding:14px;overflow-x:auto}
+    pre{margin:0;font-size:11px;line-height:1.6;white-space:pre-wrap;word-break:break-all}
+
+    /* ── Config ── */
+    .section-header{padding:14px 14px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+    .section-header strong{font-size:17px}
+    .fmt-grid{padding:14px;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+    .fmt-item{display:flex;gap:10px;align-items:center;padding:10px 12px;background:var(--elev2);border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;font-size:13px}
+    .fmt-item input[type="checkbox"]{width:18px;height:18px;accent-color:var(--primary);flex-shrink:0}
+    .fmt-actions{padding:0 14px 14px;display:flex;gap:8px;flex-wrap:wrap}
+    .fmt-tip{font-size:12px;color:var(--muted);padding:0 14px 14px;margin:0}
+    .webhook-body{padding:0 14px 14px;display:grid;gap:10px}
+    .webhook-url-row{display:flex;gap:8px}
+    .webhook-url-row input{flex:1;height:44px;padding:0 12px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--elev2);color:var(--text);font-size:16px}
+    .webhook-url-row input:focus{outline:0;border-color:var(--primary)}
+    .webhook-btn-row{display:flex;gap:8px}
+    .webhook-desc{font-size:13px;color:var(--muted);margin:0}
+    .webhook-status{font-size:13px;color:var(--muted)}
+    .webhook-hint{font-size:12px;color:var(--muted);margin:0}
+
+    /* ── Support note / footer ── */
+    #supportNote{font-size:12px;color:var(--muted);padding:2px 14px 8px}
+    .footer{padding:20px 16px;color:var(--muted);text-align:center;font-size:13px;border-top:1px solid var(--border)}
+
+    /* ── Desktop enhancements ── */
+    @media(min-width:640px){
+      .cam-controls{grid-template-columns:repeat(3,auto);justify-content:start}
+      .action-grid{grid-template-columns:repeat(3,1fr)}
+      .action-grid .btn.full{grid-column:auto}
+      .fmt-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+    }
   </style>
 </head>
 <body>
   <div class="app" id="app">
+
+    <!-- Header -->
     <header class="appbar">
-      <div class="appbar-inner" role="tablist" aria-label="Hauptmodi" data-i18n-aria-label="aria_main_tabs">
-        <div class="brand">📦 Barcode-Logger</div>
-        <div class="seg" id="modeTabs" aria-label="Hauptmodi" data-i18n-aria-label="aria_main_tabs">
-          <button id="tab-scan" role="tab" aria-selected="true" aria-controls="panel-scan" data-i18n="tab_scan">Scan</button>
-          <button id="tab-list" role="tab" aria-selected="false" aria-controls="panel-list" data-i18n="tab_list">Liste</button>
-          <button id="tab-export" role="tab" aria-selected="false" aria-controls="panel-export" data-i18n="tab_export">Export</button>
-          <button id="tab-config" role="tab" aria-selected="false" aria-controls="panel-config" data-i18n="tab_config">Konfig</button>
+      <div class="appbar-inner">
+        <span class="brand"><span aria-hidden="true">&#x1F4E6;</span> Barcode-Logger</span>
+        <div class="ctrl-group" aria-label="Darstellung" data-i18n-aria-label="theme_label">
+          <button id="theme-auto"  aria-pressed="true"  data-i18n="theme_auto"  data-i18n-title="theme_auto"  title="Auto">Auto</button>
+          <button id="theme-light" aria-pressed="false" aria-label="Hell" data-i18n-aria-label="theme_light" data-i18n-title="theme_light" title="Hell"><span aria-hidden="true">&#x2600;&#xFE0F;</span></button>
+          <button id="theme-dark"  aria-pressed="false" aria-label="Dunkel" data-i18n-aria-label="theme_dark" data-i18n-title="theme_dark"  title="Dunkel"><span aria-hidden="true">&#x1F319;</span></button>
         </div>
-        <div class="spacer"></div>
-        <div class="theme" aria-label="Darstellung" data-i18n-aria-label="theme_label">
-          <button id="theme-auto" aria-pressed="true" title="Auto" data-i18n="theme_auto" data-i18n-title="theme_auto">Auto</button>
-          <button id="theme-light" aria-pressed="false" title="Hell" data-i18n-title="theme_light">☀️</button>
-          <button id="theme-dark" aria-pressed="false" title="Dunkel" data-i18n-title="theme_dark">🌙</button>
-        </div>
-        <div class="theme" id="langSwitcher" aria-label="Sprache" data-i18n-aria-label="lang_label">
+        <div class="ctrl-group" id="langSwitcher" aria-label="Sprache" data-i18n-aria-label="lang_label">
           <button id="lang-de" aria-pressed="true">DE</button>
           <button id="lang-en" aria-pressed="false">EN</button>
         </div>
       </div>
     </header>
 
+    <!-- Content -->
     <main class="content">
-      <section id="panel-scan" class="panel grid" role="tabpanel" aria-labelledby="tab-scan" tabindex="0">
+
+      <!-- SCAN panel -->
+      <section id="panel-scan" class="panel" role="tabpanel" aria-labelledby="tab-scan" tabindex="0">
         <div class="card viewer">
           <video id="preview" playsinline muted aria-label="Live-Kamera" data-i18n-aria-label="aria_camera"></video>
-          <div class="frame" aria-hidden="true"></div>
-          <button id="torchBtn" class="torch" disabled aria-pressed="false" title="Taschenlampe" data-i18n-title="torch_title" aria-label="Taschenlampe" data-i18n-aria-label="torch_title">🔦</button>
+          <div class="scan-frame" aria-hidden="true"><div class="scan-corner"><span></span></div></div>
+          <div id="scanFlash" class="scan-flash" aria-hidden="true"></div>
+          <button id="torchBtn" class="torch" disabled aria-pressed="false"
+            title="Taschenlampe" data-i18n-title="torch_title"
+            aria-label="Taschenlampe" data-i18n-aria-label="torch_title">&#x1F526;</button>
+          <span id="camStatus" class="cam-status" aria-live="polite"></span>
         </div>
 
-        <div class="grid">
-          <div class="card">
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <strong data-i18n="mode_label">Modus</strong>
-              <div class="mode-seg" id="modeSeg" role="group" aria-label="Scan-Modus" data-i18n-aria-label="mode_seg_aria">
-                <button data-mode="general"     aria-pressed="true"  data-i18n-mode-label="general">📋 Allgemein</button>
-                <button data-mode="delivery"    aria-pressed="false" data-i18n-mode-label="delivery">📦 Lieferung</button>
-                <button data-mode="stock"       aria-pressed="false" data-i18n-mode-label="stock">🗃️ Lager</button>
-                <button data-mode="maintenance" aria-pressed="false" data-i18n-mode-label="maintenance">🔧 Wartung</button>
-              </div>
+        <div class="card">
+          <div class="cam-controls">
+            <button id="startBtn" class="btn primary" data-i18n="btn_start">Start</button>
+            <button id="stopBtn"  class="btn ghost"   data-i18n="btn_stop">Stopp</button>
+            <button id="clearBtn" class="btn danger"  data-i18n="btn_clear">Liste leeren</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="mode-scroll-wrap">
+            <div class="mode-seg" id="modeSeg" role="group" aria-label="Scan-Modus" data-i18n-aria-label="mode_seg_aria">
+              <button data-mode="general"     aria-pressed="true"  data-i18n-mode-label="general">&#x1F4CB; Allgemein</button>
+              <button data-mode="delivery"    aria-pressed="false" data-i18n-mode-label="delivery">&#x1F4E6; Lieferung</button>
+              <button data-mode="stock"       aria-pressed="false" data-i18n-mode-label="stock">&#x1F5C3;&#xFE0F; Lager</button>
+              <button data-mode="maintenance" aria-pressed="false" data-i18n-mode-label="maintenance">&#x1F527; Wartung</button>
             </div>
           </div>
-          <div id="modeBanner" class="card mode-banner" data-mode="general" role="region" aria-label="Modus-Status" data-i18n-aria-label="aria_mode_banner" aria-live="polite">
+          <div id="modeBanner" class="mode-banner" data-mode="general"
+            role="region" aria-label="Modus-Status" data-i18n-aria-label="aria_mode_banner" aria-live="polite">
             <div class="mode-banner-head">
-              <span class="mode-banner-title" id="modeBannerTitle">📋 Allgemein</span>
+              <span class="mode-banner-title" id="modeBannerTitle">&#x1F4CB; Allgemein</span>
               <span class="mode-banner-stats" id="modeBannerStats"></span>
             </div>
-            <p class="mode-banner-prompt" id="modeBannerPrompt">Beliebigen Code scannen…</p>
-          </div>
-          <div class="card toggles">
-            <label class="switch"><input type="checkbox" id="trackLocation"> <span data-i18n="track_location">Standort mitschreiben</span></label>
-            <label class="switch"><input type="checkbox" id="allowDuplicates"> <span data-i18n="allow_dupes">Dubletten erlauben</span></label>
-            <label class="switch"><input type="checkbox" id="beepOn" checked> <span data-i18n="beep_on">Akustisches Feedback</span></label>
-            <span id="supportNote" style="margin-left:auto" aria-live="polite"></span>
-          </div>
-          <div class="controls">
-            <button id="startBtn" class="btn primary" data-i18n="btn_start">Start</button>
-            <button id="stopBtn" class="btn ghost" data-i18n="btn_stop">Stopp</button>
-            <button id="clearBtn" class="btn danger" data-i18n="btn_clear">Liste leeren</button>
+            <p class="mode-banner-prompt" id="modeBannerPrompt">Beliebigen Code scannen&#x2026;</p>
           </div>
         </div>
 
-        <div id="lastScanCard" class="card detail-card" hidden role="region" aria-labelledby="lastScanLabel">
-          <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-            <strong id="lastScanLabel"></strong>
-            <span id="lastScanCode" class="code" style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-            <button id="lastScanClose" class="btn ghost" style="height:32px;padding:0 12px;font-size:13px" data-i18n="skip_btn">✕ Überspringen</button>
+        <div class="card toggles">
+          <div class="switch-row">
+            <label for="trackLocation" data-i18n="track_location">Standort mitschreiben</label>
+            <div class="toggle-switch"><input type="checkbox" id="trackLocation"><div class="toggle-track"></div></div>
           </div>
-          <div id="lastScanFields" style="display:grid;gap:8px"></div>
-          <button id="lastScanSave" class="btn primary" style="width:100%;margin-top:10px">💾 Details speichern</button>
+          <div class="switch-row">
+            <label for="allowDuplicates" data-i18n="allow_dupes">Dubletten erlauben</label>
+            <div class="toggle-switch"><input type="checkbox" id="allowDuplicates"><div class="toggle-track"></div></div>
+          </div>
+          <div class="switch-row">
+            <label for="beepOn" data-i18n="beep_on">Akustisches Feedback</label>
+            <div class="toggle-switch"><input type="checkbox" id="beepOn" checked><div class="toggle-track"></div></div>
+          </div>
         </div>
+
+        <span id="supportNote" aria-live="polite"></span>
       </section>
 
-      <section id="panel-list" class="panel grid" role="tabpanel" aria-labelledby="tab-list" hidden tabindex="0">
+      <!-- LIST panel -->
+      <section id="panel-list" class="panel" role="tabpanel" aria-labelledby="tab-list" hidden tabindex="0">
         <div class="card">
-          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div class="list-controls">
             <strong data-i18n="list_heading">Gescannte Codes</strong>
-            <span id="count" aria-live="polite" role="status">(0)</span>
-            <input id="filterInput" type="search" placeholder="Liste filtern…" style="margin-left:auto;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)" data-i18n-placeholder="filter_placeholder" aria-label="Liste filtern…" data-i18n-aria-label="filter_placeholder">
-            <select id="filterMode" style="padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)" aria-label="Nach Modus filtern" data-i18n-aria-label="filter_mode_aria">
-              <option value="" data-i18n="filter_all_modes">Alle Modi</option>
-              <option value="general" data-i18n-mode-label="general">📋 Allgemein</option>
-              <option value="delivery" data-i18n-mode-label="delivery">📦 Lieferung</option>
-              <option value="stock" data-i18n-mode-label="stock">🗃️ Lager</option>
-              <option value="maintenance" data-i18n-mode-label="maintenance">🔧 Wartung</option>
+            <span id="count" class="scan-count" aria-live="polite" role="status" aria-label="0 Einträge">0</span>
+          </div>
+          <div class="search-row">
+            <input id="filterInput" class="search-input" type="search"
+              placeholder="Liste filtern&#x2026;"
+              data-i18n-placeholder="filter_placeholder"
+              aria-label="Liste filtern" data-i18n-aria-label="filter_placeholder">
+            <select id="filterMode" class="filter-select"
+              aria-label="Nach Modus filtern" data-i18n-aria-label="filter_mode_aria">
+              <option value=""          data-i18n="filter_all_modes">Alle Modi</option>
+              <option value="general"     data-i18n-mode-label="general">&#x1F4CB; Allgemein</option>
+              <option value="delivery"    data-i18n-mode-label="delivery">&#x1F4E6; Lieferung</option>
+              <option value="stock"       data-i18n-mode-label="stock">&#x1F5C3;&#xFE0F; Lager</option>
+              <option value="maintenance" data-i18n-mode-label="maintenance">&#x1F527; Wartung</option>
             </select>
           </div>
-        </div>
-        <div class="card">
-          <ul id="scanList" class="list" aria-live="polite" aria-relevant="additions" aria-label="Liste der gescannten Codes" data-i18n-aria-label="aria_scan_list"></ul>
+          <ul id="scanList" class="list" aria-live="polite" aria-relevant="additions"
+            aria-label="Liste der gescannten Codes" data-i18n-aria-label="aria_scan_list"></ul>
         </div>
       </section>
 
-      <section id="panel-export" class="panel grid" role="tabpanel" aria-labelledby="tab-export" hidden tabindex="0">
-        <div class="card export-actions">
-          <button id="exportCsvBtn" class="btn ghost" data-i18n="btn_export_csv">CSV exportieren</button>
-          <button id="shareCsvBtn" class="btn ghost" data-i18n="btn_share">Per Mail/Share senden</button>
-          <button id="backupJsonBtn" class="btn ghost" data-i18n="btn_backup">Backup (JSON)</button>
-          <button id="restoreJsonBtn" class="btn ghost" data-i18n="btn_restore">Wiederherstellen (JSON)</button>
-          <button id="clearAllBtn" class="btn danger" data-i18n="btn_clear_all">Alles löschen</button>
+      <!-- EXPORT panel -->
+      <section id="panel-export" class="panel" role="tabpanel" aria-labelledby="tab-export" hidden tabindex="0">
+        <div class="card">
+          <div class="action-grid">
+            <button id="exportCsvBtn"  class="btn ghost"        data-i18n="btn_export_csv">CSV exportieren</button>
+            <button id="shareCsvBtn"   class="btn ghost"        data-i18n="btn_share">Per Mail/Share</button>
+            <button id="backupJsonBtn" class="btn ghost"        data-i18n="btn_backup">Backup (JSON)</button>
+            <button id="restoreJsonBtn" class="btn ghost"       data-i18n="btn_restore">Restore (JSON)</button>
+            <button id="clearAllBtn"   class="btn danger full"  data-i18n="btn_clear_all">Alles l&#xF6;schen</button>
+          </div>
         </div>
-        <div class="card" id="statsCard"></div>
-        <div class="card" id="previewCard"><em data-i18n="csv_preview_empty">CSV Vorschau erscheint nach erstem Scan.</em></div>
+        <div class="card"><div class="stats-section" id="statsCard"></div></div>
+        <div class="card">
+          <div class="preview-section" id="previewCard">
+            <em data-i18n="csv_preview_empty">CSV Vorschau erscheint nach erstem Scan.</em>
+          </div>
+        </div>
       </section>
 
-      <section id="panel-config" class="panel grid" role="tabpanel" aria-labelledby="tab-config" hidden tabindex="0">
+      <!-- CONFIG panel -->
+      <section id="panel-config" class="panel" role="tabpanel" aria-labelledby="tab-config" hidden tabindex="0">
         <div class="card">
-          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div class="section-header">
             <strong data-i18n="formats_heading">Erkannte Formate</strong>
-            <span id="supportedFormats" class="meta" style="margin-left:auto"></span>
+            <span id="supportedFormats" class="row-meta" style="margin-left:auto"></span>
           </div>
-        </div>
-        <div class="card">
           <div class="fmt-grid" id="fmtGrid"></div>
-        </div>
-        <div class="card" style="display:flex;gap:12px;flex-wrap:wrap">
-          <button id="applyFormatsBtn" class="btn primary" data-i18n="btn_apply_formats">Übernehmen</button>
-          <button id="selectAllBtn" class="btn ghost" data-i18n="btn_select_all">Alle</button>
-          <button id="selectNoneBtn" class="btn ghost" data-i18n="btn_select_none">Keine</button>
-          <span class="meta" data-i18n="formats_tip">Tipp: Änderungen wirken beim nächsten Scan-Start. „Übernehmen“ stoppt/ startet bei Bedarf automatisch.</span>
+          <div class="fmt-actions">
+            <button id="applyFormatsBtn" class="btn primary" data-i18n="btn_apply_formats">&#xDCbernehmen</button>
+            <button id="selectAllBtn"   class="btn ghost"   data-i18n="btn_select_all">Alle</button>
+            <button id="selectNoneBtn"  class="btn ghost"   data-i18n="btn_select_none">Keine</button>
+          </div>
+          <p class="fmt-tip" data-i18n="formats_tip">Tipp: &#x201E;&#xDCbernehmen&#x201C; stoppt/startet die Kamera automatisch neu.</p>
         </div>
         <div class="card">
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <strong data-i18n="webhook_heading">🔗 Sync-Backend (Webhook)</strong>
+          <div class="section-header">
+            <strong data-i18n="webhook_heading">&#x1F517; Sync-Backend (Webhook)</strong>
           </div>
-          <p class="meta" style="margin:6px 0 10px" data-i18n="webhook_desc">Jeder abgeschlossene Scan wird als HTTP&nbsp;POST (JSON) an diese URL gesendet. Leer lassen zum Deaktivieren.</p>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <input id="webhookUrl" type="url" placeholder="https://example.com/api/scan" style="flex:1;min-width:200px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--elev);color:var(--text)" data-i18n-placeholder="webhook_placeholder" aria-label="https://example.com/api/scan" data-i18n-aria-label="webhook_placeholder">
-            <button id="saveWebhookBtn" class="btn primary" data-i18n="btn_save_webhook">Speichern</button>
-            <button id="testWebhookBtn" class="btn ghost" data-i18n="btn_test_webhook">Testen</button>
+          <div class="webhook-body">
+            <p class="webhook-desc" data-i18n="webhook_desc">Jeder Scan wird als HTTP POST (JSON) gesendet. Leer lassen zum Deaktivieren.</p>
+            <div class="webhook-url-row">
+              <input id="webhookUrl" type="url" placeholder="https://example.com/api/scan"
+                data-i18n-placeholder="webhook_placeholder"
+                aria-label="Webhook URL" data-i18n-aria-label="webhook_placeholder">
+            </div>
+            <div class="webhook-btn-row">
+              <button id="saveWebhookBtn" class="btn primary" data-i18n="btn_save_webhook">Speichern</button>
+              <button id="testWebhookBtn" class="btn ghost"   data-i18n="btn_test_webhook">Testen</button>
+            </div>
+            <span id="webhookStatus" class="webhook-status" aria-live="polite"></span>
+            <p class="webhook-hint" data-i18n="webhook_backends_hint">Beispiel-Backends im Ordner <code>backend/</code>.</p>
           </div>
-          <span id="webhookStatus" class="meta" style="margin-top:8px;display:block" aria-live="polite"></span>
-          <p class="meta" style="margin:10px 0 0" data-i18n="webhook_backends_hint">Beispiel-Backends (PHP, Python, Go) liegen im Ordner <code>backend/</code> des Repositories.</p>
         </div>
       </section>
+
     </main>
 
-    <footer class="footer" data-i18n="footer_text">© Barcode-Logger • PWA • ZXing • Auto/Light/Dark</footer>
-  </div>
+    <!-- Detail sheet (bottom sheet) -->
+    <div id="sheetBackdrop" class="sheet-backdrop" role="presentation"></div>
+    <div id="detailSheet" class="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="sheetModeLabel">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-header">
+        <div style="flex:1;min-width:0">
+          <div id="sheetModeLabel" class="sheet-mode-label"></div>
+          <div id="sheetCode" class="sheet-code"></div>
+        </div>
+        <button id="sheetClose" class="sheet-close" aria-label="Schlie&#xDFen">&#x2715;</button>
+      </div>
+      <div id="sheetFields" class="sheet-fields"></div>
+      <div class="sheet-actions">
+        <button id="sheetSave" class="sheet-cta">&#x1F4BE; Details speichern</button>
+        <button id="sheetSkip" class="btn ghost full" style="height:44px" data-i18n="skip_btn">&#x2715; &#xDCberspringen</button>
+      </div>
+    </div>
 
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav" aria-label="Hauptnavigation" data-i18n-aria-label="aria_main_tabs">
+      <div class="nav-items" role="tablist">
+        <button id="tab-scan"   class="nav-item" role="tab" aria-selected="true"  aria-controls="panel-scan">
+          <span class="nav-icon" aria-hidden="true">&#x1F4F7;</span>
+          <span data-i18n="tab_scan">Scan</span>
+          <span id="nav-badge-count" class="nav-badge" hidden>0</span>
+        </button>
+        <button id="tab-list"   class="nav-item" role="tab" aria-selected="false" aria-controls="panel-list">
+          <span class="nav-icon" aria-hidden="true">&#x1F4CB;</span>
+          <span data-i18n="tab_list">Liste</span>
+        </button>
+        <button id="tab-export" class="nav-item" role="tab" aria-selected="false" aria-controls="panel-export">
+          <span class="nav-icon" aria-hidden="true">&#x1F4E4;</span>
+          <span data-i18n="tab_export">Export</span>
+        </button>
+        <button id="tab-config" class="nav-item" role="tab" aria-selected="false" aria-controls="panel-config">
+          <span class="nav-icon" aria-hidden="true">&#x2699;&#xFE0F;</span>
+          <span data-i18n="tab_config">Konfig</span>
+        </button>
+      </div>
+    </nav>
+
+    <footer class="footer" data-i18n="footer_text">&#xa9; Barcode-Logger &#x2022; PWA &#x2022; ZXing &#x2022; Auto/Light/Dark</footer>
+  </div>
   <script>
   (function () {
     const { BrowserMultiFormatReader, NotFoundException, DecodeHintType, BarcodeFormat } = ZXing;
 
     /* ---------- PERSISTENZ ---------- */
-    const LS_KEY_SCANS = 'barcode_logger_scans_v3';
-    const LS_KEY_THEME = 'barcode_logger_theme';
+    const LS_KEY_SCANS   = 'barcode_logger_scans_v3';
+    const LS_KEY_THEME   = 'barcode_logger_theme';
     const LS_KEY_FORMATS = 'barcode_logger_formats';
-    const LS_KEY_MODE = 'barcode_logger_mode';
+    const LS_KEY_MODE    = 'barcode_logger_mode';
     const LS_KEY_WEBHOOK = 'barcode_logger_webhook';
-    const LS_KEY_LANG = 'barcode_logger_lang';
+    const LS_KEY_LANG    = 'barcode_logger_lang';
 
     /* ---------- TRANSLATIONS ---------- */
     const TRANSLATIONS = {
@@ -312,12 +493,12 @@
         csv_preview_empty:'CSV Vorschau erscheint nach erstem Scan.',
         formats_heading:'Erkannte Formate',
         btn_apply_formats:'Übernehmen', btn_select_all:'Alle', btn_select_none:'Keine',
-        formats_tip:'Tipp: Änderungen wirken beim nächsten Scan-Start. „Übernehmen“ stoppt/ startet bei Bedarf automatisch.',
+        formats_tip:'Tipp: Änderungen wirken beim nächsten Scan-Start. „Übernehmen" stoppt/startet bei Bedarf automatisch.',
         webhook_heading:'🔗 Sync-Backend (Webhook)',
         webhook_desc:'Jeder abgeschlossene Scan wird als HTTP POST (JSON) an diese URL gesendet. Leer lassen zum Deaktivieren.',
         webhook_placeholder:'https://example.com/api/scan',
         btn_save_webhook:'Speichern', btn_test_webhook:'Testen',
-        stats_total:'Gesamt:', stats_unique:'Einzigartig:', stats_last:'Letzter Scan:',
+        stats_total:'Gesamt', stats_unique:'Einzigartig', stats_last:'Letzter Scan',
         stats_modes_heading:'Modi', stats_formats_heading:'Formate',
         footer_text:'© Barcode-Logger • PWA • ZXing • Auto/Light/Dark',
         camera_error:'Kamera konnte nicht gestartet werden. Prüfe HTTPS/Browser-Berechtigung.',
@@ -345,7 +526,7 @@
         mode_stats_bookings:'Buchungen heute', mode_stats_skus:'SKUs',
         mode_stats_qty:'Stk. gesamt', mode_stats_open:'offen',
         mode_stats_done:'abgeschlossen',
-        aria_main_tabs:'Hauptmodi', aria_camera:'Live-Kamera',
+        aria_main_tabs:'Hauptnavigation', aria_camera:'Live-Kamera',
         aria_scan_list:'Liste der gescannten Codes',
         aria_mode_banner:'Modus-Status'
       },
@@ -393,7 +574,7 @@
         webhook_desc:'Each completed scan is sent as HTTP POST (JSON) to this URL. Leave empty to disable.',
         webhook_placeholder:'https://example.com/api/scan',
         btn_save_webhook:'Save', btn_test_webhook:'Test',
-        stats_total:'Total:', stats_unique:'Unique:', stats_last:'Last scan:',
+        stats_total:'Total', stats_unique:'Unique', stats_last:'Last scan',
         stats_modes_heading:'Modes', stats_formats_heading:'Formats',
         footer_text:'© Barcode-Logger • PWA • ZXing • Auto/Light/Dark',
         camera_error:'Could not start camera. Check HTTPS/browser permission.',
@@ -421,7 +602,7 @@
         mode_stats_bookings:'bookings today', mode_stats_skus:'SKUs',
         mode_stats_qty:'items total', mode_stats_open:'open',
         mode_stats_done:'completed',
-        aria_main_tabs:'Main tabs', aria_camera:'Live camera',
+        aria_main_tabs:'Main navigation', aria_camera:'Live camera',
         aria_scan_list:'List of scanned codes',
         aria_mode_banner:'Mode status'
       }
@@ -438,65 +619,45 @@
     /* ---------- DOM ---------- */
     const $ = id => document.getElementById(id);
 
-    // Tabs & Theme
-    const tabs = {
-      scan: $('tab-scan'),
-      list: $('tab-list'),
-      export: $('tab-export'),
-      config: $('tab-config'),
-    };
-    const panels = {
-      scan: $('panel-scan'),
-      list: $('panel-list'),
-      export: $('panel-export'),
-      config: $('panel-config'),
-    };
-    const themeBtns = {
-      auto: $('theme-auto'),
-      light: $('theme-light'),
-      dark: $('theme-dark'),
-    };
+    const tabs = { scan:$('tab-scan'), list:$('tab-list'), export:$('tab-export'), config:$('tab-config') };
+    const panels = { scan:$('panel-scan'), list:$('panel-list'), export:$('panel-export'), config:$('panel-config') };
+    const themeBtns = { auto:$('theme-auto'), light:$('theme-light'), dark:$('theme-dark') };
 
-    // Scan panel
-    const video   = $('preview');
-    const scanList= $('scanList');
-    const countEl = $('count');
-    const startBtn= $('startBtn');
-    const stopBtn = $('stopBtn');
-    const clearBtn= $('clearBtn');
-    const torchBtn= $('torchBtn');
-    const trackLocationEl = $('trackLocation');
+    const video             = $('preview');
+    const scanList          = $('scanList');
+    const countEl           = $('count');
+    const startBtn          = $('startBtn');
+    const stopBtn           = $('stopBtn');
+    const clearBtn          = $('clearBtn');
+    const torchBtn          = $('torchBtn');
+    const trackLocationEl   = $('trackLocation');
     const allowDuplicatesEl = $('allowDuplicates');
-    const beepOnEl = $('beepOn');
-    const supportNote = $('supportNote');
+    const beepOnEl          = $('beepOn');
+    const supportNote       = $('supportNote');
+    const camStatus         = $('camStatus');
 
-    // List / Export
-    const filterInput = $('filterInput');
-    const exportCsvBtn = $('exportCsvBtn');
-    const shareCsvBtn  = $('shareCsvBtn');
-    const backupJsonBtn= $('backupJsonBtn');
-    const restoreJsonBtn=$('restoreJsonBtn');
-    const clearAllBtn  = $('clearAllBtn');
-    const statsCard    = $('statsCard');
-    const previewCard  = $('previewCard');
+    const filterInput    = $('filterInput');
+    const exportCsvBtn   = $('exportCsvBtn');
+    const shareCsvBtn    = $('shareCsvBtn');
+    const backupJsonBtn  = $('backupJsonBtn');
+    const restoreJsonBtn = $('restoreJsonBtn');
+    const clearAllBtn    = $('clearAllBtn');
+    const statsCard      = $('statsCard');
+    const previewCard    = $('previewCard');
 
-    // Config
     const supportedFormatsEl = $('supportedFormats');
-    const fmtGrid = $('fmtGrid');
-    const applyFormatsBtn = $('applyFormatsBtn');
-    const selectAllBtn = $('selectAllBtn');
-    const selectNoneBtn = $('selectNoneBtn');
+    const fmtGrid        = $('fmtGrid');
+    const applyFormatsBtn= $('applyFormatsBtn');
+    const selectAllBtn   = $('selectAllBtn');
+    const selectNoneBtn  = $('selectNoneBtn');
 
     /* ---------- STATE ---------- */
-    let running = false;
-    let reader = null;
-    let hints = null;
+    let running = false, reader = null, hints = null;
     let selectedFormats = loadSelectedFormats();
     let lastText = null, lastAt = 0;
     let torchTrack = null, torchOn = false;
     let seen = new Set(scans.map(s => s.code));
-    let geoWatchId = null;
-    let lastCoords = null;
+    let geoWatchId = null, lastCoords = null;
     let currentMode = localStorage.getItem(LS_KEY_MODE) || DEFAULT_MODE;
     let lastScanEntry = null;
 
@@ -505,19 +666,18 @@
     function initTheme(){
       const pref = localStorage.getItem(LS_KEY_THEME) || 'auto';
       applyTheme(pref);
-      themeBtns.auto.addEventListener('click', ()=>applyTheme('auto'));
-      themeBtns.light.addEventListener('click', ()=>applyTheme('light'));
-      themeBtns.dark.addEventListener('click', ()=>applyTheme('dark'));
+      themeBtns.auto .addEventListener('click', () => applyTheme('auto'));
+      themeBtns.light.addEventListener('click', () => applyTheme('light'));
+      themeBtns.dark .addEventListener('click', () => applyTheme('dark'));
     }
     function applyTheme(mode){
-      if(mode==='auto'){ document.body.removeAttribute('data-theme'); }
-      else{ document.body.setAttribute('data-theme', mode); }
-      for (const k in themeBtns) themeBtns[k].setAttribute('aria-pressed', String(k===mode));
+      if (mode === 'auto') document.body.removeAttribute('data-theme');
+      else                 document.body.setAttribute('data-theme', mode);
+      for (const k in themeBtns) themeBtns[k].setAttribute('aria-pressed', String(k === mode));
       localStorage.setItem(LS_KEY_THEME, mode);
     }
 
-    /* ---------- MODE ---------- */
-    /* ---------- MODES (defined before initMode to avoid TDZ) ---------- */
+    /* ---------- MODES ---------- */
     const MODES = {
       general: {
         get label(){ return t('mode_general'); }, color:'#6b7280',
@@ -527,7 +687,7 @@
         stats(s){ const m=_modeScans(s,'general'); return [`${_todayCount(m)} ${t('mode_stats_today')}`,`${m.length} ${t('mode_stats_total')}`]; }
       },
       delivery: {
-        get label(){ return t('mode_delivery'); }, color:'#3b82f6',
+        get label(){ return t('mode_delivery'); }, color:'var(--primary)',
         get prompt(){ return t('prompt_delivery'); },
         get saveCta(){ return t('cta_delivery'); },
         autoLocation:true, autoAllowDupes:true,
@@ -541,7 +701,7 @@
         stats(s){ const m=_modeScans(s,'stock'); const qty=m.reduce((a,x)=>a+(x.qty||1),0); return [`${_todayCount(m)} ${t('mode_stats_bookings')}`,`${new Set(m.map(x=>x.code)).size} ${t('mode_stats_skus')}`,`${qty} ${t('mode_stats_qty')}`]; }
       },
       maintenance: {
-        get label(){ return t('mode_maintenance'); }, color:'#f59e0b',
+        get label(){ return t('mode_maintenance'); }, color:'var(--warn)',
         get prompt(){ return t('prompt_maintenance'); },
         get saveCta(){ return t('cta_maintenance'); },
         autoLocation:false, autoAllowDupes:false,
@@ -551,16 +711,14 @@
 
     function getModeFields(){
       return {
-        general: [
-          { key:'notes', label:t('field_notes'), type:'text', placeholder:t('ph_notes_general') }
-        ],
-        delivery: [
+        general:     [{ key:'notes',      label:t('field_notes'),      type:'text',   placeholder:t('ph_notes_general') }],
+        delivery:    [
           { key:'qty',       label:t('field_qty'),       type:'number', placeholder:t('ph_qty') },
           { key:'recipient', label:t('field_recipient'), type:'text',   placeholder:t('ph_recipient') },
           { key:'reference', label:t('field_reference'), type:'text',   placeholder:t('ph_reference') },
           { key:'notes',     label:t('field_notes'),     type:'text',   placeholder:t('ph_notes_delivery') }
         ],
-        stock: [
+        stock:       [
           { key:'qty',       label:t('field_qty'),       type:'number', placeholder:t('ph_qty') },
           { key:'shelf',     label:t('field_shelf'),     type:'text',   placeholder:t('ph_shelf') },
           { key:'reference', label:t('field_reference'), type:'text',   placeholder:t('ph_reference_stock') },
@@ -584,7 +742,7 @@
         btn.addEventListener('click', () => {
           currentMode = btn.dataset.mode;
           localStorage.setItem(LS_KEY_MODE, currentMode);
-          seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b===btn)));
+          seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
           applyModeDefaults(currentMode);
           renderModeBanner();
         });
@@ -595,10 +753,7 @@
 
     function applyModeDefaults(modeKey){
       const mode = MODES[modeKey] || MODES[DEFAULT_MODE];
-      if (mode.autoLocation && !trackLocationEl.checked){
-        trackLocationEl.checked = true;
-        startGeoWatch();
-      }
+      if (mode.autoLocation && !trackLocationEl.checked){ trackLocationEl.checked = true; startGeoWatch(); }
       allowDuplicatesEl.checked = mode.autoAllowDupes;
     }
 
@@ -607,31 +762,24 @@
       const banner = $('modeBanner');
       if (!banner) return;
       banner.dataset.mode = currentMode;
-      $('modeBannerTitle').textContent = mode.label;
+      $('modeBannerTitle').textContent  = mode.label;
       $('modeBannerPrompt').textContent = mode.prompt;
       const pills = mode.stats(scans);
-      $('modeBannerStats').innerHTML = pills.map(p=>`<span class="stat-pill">${escapeHtml(p)}</span>`).join('');
+      $('modeBannerStats').innerHTML = pills.map(p => `<span class="stat-pill">${escapeHtml(p)}</span>`).join('');
     }
 
     /* ---------- TABS ---------- */
     initTabs();
     function initTabs(){
-      const map = [
-        [tabs.scan, panels.scan],
-        [tabs.list, panels.list],
-        [tabs.export, panels.export],
-        [tabs.config, panels.config],
-      ];
-      map.forEach(([tab,panel])=>{
-        tab.addEventListener('click', ()=>activateTab(tab.id.replace('tab-','')));
+      Object.values(tabs).forEach(tab => {
+        tab.addEventListener('click', () => activateTab(tab.id.replace('tab-', '')));
       });
-      // Keyboard: ← →
-      $('modeTabs').addEventListener('keydown', (e)=>{
-        if(e.key!=='ArrowRight' && e.key!=='ArrowLeft') return;
+      document.querySelector('.nav-items').addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
         e.preventDefault();
-        const order = ['scan','list','export','config'];
-        const current = order.findIndex(k => tabs[k].getAttribute('aria-selected')==='true');
-        const next = e.key==='ArrowRight' ? (current+1)%order.length : (current-1+order.length)%order.length;
+        const order   = ['scan','list','export','config'];
+        const current = order.findIndex(k => tabs[k].getAttribute('aria-selected') === 'true');
+        const next    = e.key === 'ArrowRight' ? (current+1)%order.length : (current-1+order.length)%order.length;
         tabs[order[next]].focus();
         activateTab(order[next]);
       });
@@ -639,16 +787,13 @@
     }
     function activateTab(name){
       const all = ['scan','list','export','config'];
-      all.forEach(k=>{
-        tabs[k].setAttribute('aria-selected', String(k===name));
-        panels[k].hidden = (k!==name);
-      });
-      if(name==='list'){ renderList(); }
-      if(name==='export'){ renderStats(); renderPreview(); }
-      if(name==='config'){ renderFormatsUI(); initWebhookConfig(); }
+      all.forEach(k => { tabs[k].setAttribute('aria-selected', String(k === name)); panels[k].hidden = (k !== name); });
+      if (name === 'list')   renderList();
+      if (name === 'export') { renderStats(); renderPreview(); }
+      if (name === 'config') { renderFormatsUI(); initWebhookConfig(); }
     }
 
-    /* ---------- ZXING / HINTS ---------- */
+    /* ---------- ZXING ---------- */
     const ALL_FORMAT_KEYS = [
       'QR_CODE','EAN_13','EAN_8','CODE_128','CODE_39','CODE_93','ITF','UPC_A','UPC_E',
       'DATA_MATRIX','AZTEC','PDF_417','RSS_14','RSS_EXPANDED','MAXICODE'
@@ -657,54 +802,54 @@
     function loadSelectedFormats(){
       try{
         const stored = JSON.parse(localStorage.getItem(LS_KEY_FORMATS));
-        if(Array.isArray(stored) && stored.length) return stored.filter(k=>ALL_FORMAT_KEYS.includes(k));
+        if (Array.isArray(stored) && stored.length) return stored.filter(k => ALL_FORMAT_KEYS.includes(k));
       }catch{}
-      return ['QR_CODE','EAN_13','EAN_8','CODE_128','CODE_39','ITF','UPC_A','UPC_E','DATA_MATRIX','AZTEC','PDF_417']; // sinnvolle Defaults
+      return ['QR_CODE','EAN_13','EAN_8','CODE_128','CODE_39','ITF','UPC_A','UPC_E','DATA_MATRIX','AZTEC','PDF_417'];
     }
-    function saveSelectedFormats(){
-      localStorage.setItem(LS_KEY_FORMATS, JSON.stringify(selectedFormats));
-    }
+    function saveSelectedFormats(){ localStorage.setItem(LS_KEY_FORMATS, JSON.stringify(selectedFormats)); }
     function buildHints(){
       const map = new Map();
       const fmts = selectedFormats.map(k => BarcodeFormat[k]);
       if (fmts.length) map.set(DecodeHintType.POSSIBLE_FORMATS, fmts);
-      // Duplikat-Check übernimmt unsere App-Logik (nicht ZXing)
       return map;
     }
 
-    /* ---------- LIST RENDERING ---------- */
+    /* ---------- HELPERS ---------- */
     function fmtTime(ts){ return new Date(ts).toLocaleString([], {hour12:false}); }
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
-    function updateCount(){ countEl.textContent = `(${scans.length})`; }
-
-    // Stats helpers used by MODES.stats() functions (defined here; hoisted as function declarations)
+    function updateCount(){
+      countEl.textContent = scans.length;
+      countEl.setAttribute('aria-label', `${scans.length} ${currentLang === 'en' ? 'entries' : 'Einträge'}`);
+      const badge = $('nav-badge-count');
+      if (badge){ badge.textContent = scans.length; badge.hidden = scans.length === 0; }
+    }
     function _modeScans(s,k){ return s.filter(x=>(x.mode||DEFAULT_MODE)===k); }
-    function _todayCount(m){ const t=new Date().toDateString(); return m.filter(x=>new Date(x.ts).toDateString()===t).length; }
+    function _todayCount(m){ const td=new Date().toDateString(); return m.filter(x=>new Date(x.ts).toDateString()===td).length; }
 
+    /* ---------- LIST ---------- */
     function appendRow(entry, prepend=false){
       const li = document.createElement('li');
       li.className = 'row';
       li.dataset.code = entry.code;
-      const loc = (entry.lat!=null && entry.lon!=null) ? `📍 ${entry.lat.toFixed(5)}, ${entry.lon.toFixed(5)}` : '';
+      const loc     = (entry.lat!=null && entry.lon!=null) ? `📍 ${entry.lat.toFixed(5)}, ${entry.lon.toFixed(5)}` : '';
       const modeKey = entry.mode || DEFAULT_MODE;
       const modeBadge = `<span class="mode-badge mode-badge-${escapeHtml(modeKey)}">${escapeHtml((MODES[modeKey]?.label)||modeKey)}</span>`;
-      // Extra fields
       const extraParts = [];
-      if (entry.qty != null)        extraParts.push(`<span>📦 ${escapeHtml(String(entry.qty))}</span>`);
-      if (entry.shelf)              extraParts.push(`<span>🗄️ ${escapeHtml(entry.shelf)}</span>`);
-      if (entry.recipient)          extraParts.push(`<span>👤 ${escapeHtml(entry.recipient)}</span>`);
-      if (entry.reference)          extraParts.push(`<span>🔖 ${escapeHtml(entry.reference)}</span>`);
-      if (entry.workType)           extraParts.push(`<span>🔧 ${escapeHtml(entry.workType)}</span>`);
-      if (entry.technician)         extraParts.push(`<span>👷 ${escapeHtml(entry.technician)}</span>`);
-      if (entry.status)             extraParts.push(`<span>🏷️ ${escapeHtml(entry.status)}</span>`);
-      if (entry.notes)              extraParts.push(`<span>📝 ${escapeHtml(entry.notes)}</span>`);
+      if (entry.qty != null) extraParts.push(`<span>📦 ${escapeHtml(String(entry.qty))}</span>`);
+      if (entry.shelf)       extraParts.push(`<span>🗄️ ${escapeHtml(entry.shelf)}</span>`);
+      if (entry.recipient)   extraParts.push(`<span>👤 ${escapeHtml(entry.recipient)}</span>`);
+      if (entry.reference)   extraParts.push(`<span>🔖 ${escapeHtml(entry.reference)}</span>`);
+      if (entry.workType)    extraParts.push(`<span>🔧 ${escapeHtml(entry.workType)}</span>`);
+      if (entry.technician)  extraParts.push(`<span>👷 ${escapeHtml(entry.technician)}</span>`);
+      if (entry.status)      extraParts.push(`<span>🏷️ ${escapeHtml(entry.status)}</span>`);
+      if (entry.notes)       extraParts.push(`<span>📝 ${escapeHtml(entry.notes)}</span>`);
       const extraHtml = extraParts.length ? `<div class="extra-meta">${extraParts.join('')}</div>` : '';
       li.innerHTML = `
         <div class="top">
           <div class="code">${escapeHtml(entry.code)}</div>
-          <div class="meta">${modeBadge} ${escapeHtml(entry.format||'')}</div>
+          <div class="row-meta">${modeBadge} ${escapeHtml(entry.format||'')}</div>
         </div>
-        <div class="meta">
+        <div class="row-meta">
           <span>⏱ ${fmtTime(entry.ts)}</span>
           ${loc ? `<span>${loc}</span>` : ''}
         </div>
@@ -714,7 +859,7 @@
 
     function renderList(){
       scanList.innerHTML = '';
-      const q = (filterInput.value||'').toLowerCase().trim();
+      const q  = (filterInput.value||'').toLowerCase().trim();
       const mf = ($('filterMode')?.value)||'';
       scans
         .filter(e => (!q || e.code.toLowerCase().includes(q)) && (!mf || (e.mode||DEFAULT_MODE)===mf))
@@ -723,28 +868,27 @@
       updateCount();
     }
 
+    /* ---------- DETAIL SHEET ---------- */
+    const sheetBackdrop = $('sheetBackdrop');
+    const detailSheet   = $('detailSheet');
 
-    /* ---------- LAST SCAN DETAIL CARD ---------- */
-    function showLastScanCard(entry){
+    function openSheet(entry){
       lastScanEntry = entry;
       const modeKey = entry.mode || DEFAULT_MODE;
-      const card = $('lastScanCard');
-      card.dataset.mode = modeKey;
-      $('lastScanLabel').textContent = (MODES[modeKey]?.label) || modeKey;
-      $('lastScanCode').textContent = entry.code;
-      const container = $('lastScanFields');
+      detailSheet.dataset.mode = modeKey;
+      $('sheetModeLabel').textContent = (MODES[modeKey]?.label) || modeKey;
+      $('sheetCode').textContent = entry.code;
+      const container = $('sheetFields');
       container.innerHTML = '';
       (getModeFields()[modeKey] || getModeFields()[DEFAULT_MODE]).forEach((f, i) => {
         const row = document.createElement('div');
         row.className = 'field-row';
         const inputId = `lsf_${f.key}_${i}`;
         const lbl = document.createElement('label');
-        lbl.textContent = f.label;
-        lbl.htmlFor = inputId;
+        lbl.textContent = f.label; lbl.htmlFor = inputId;
         let inp;
-        if (f.type === 'select') {
-          inp = document.createElement('select');
-          inp.id = inputId;
+        if (f.type === 'select'){
+          inp = document.createElement('select'); inp.id = inputId;
           f.options.forEach(opt => {
             const o = document.createElement('option');
             o.value = opt; o.textContent = opt;
@@ -753,68 +897,72 @@
           });
         } else {
           inp = document.createElement('input');
-          inp.id = inputId;
-          inp.type = f.type;
+          inp.id = inputId; inp.type = f.type;
           inp.placeholder = f.placeholder || '';
           const existing = entry[f.key];
           inp.value = existing != null ? existing : '';
           if (f.type === 'number') inp.min = '0';
         }
-        inp.dataset.fieldKey = f.key;
+        inp.dataset.fieldKey  = f.key;
         inp.dataset.fieldType = f.type;
-        row.appendChild(lbl);
-        row.appendChild(inp);
-        container.appendChild(row);
+        row.appendChild(lbl); row.appendChild(inp); container.appendChild(row);
       });
       const mode = MODES[modeKey] || MODES[DEFAULT_MODE];
-      $('lastScanSave').textContent = mode.saveCta;
-      card.hidden = false;
+      const saveBtn = $('sheetSave');
+      saveBtn.textContent = mode.saveCta;
+      saveBtn.dataset.mode = modeKey;
+      sheetBackdrop.classList.add('visible');
+      detailSheet.classList.add('open');
+      document.body.style.overflow = 'hidden';
     }
 
-    function saveLastScanDetails(){
+    function closeSheet(save){
+      if (save) saveSheetDetails(); else dismissSheet();
+    }
+
+    function saveSheetDetails(){
       if (!lastScanEntry) return;
-      $('lastScanFields').querySelectorAll('[data-field-key]').forEach(inp => {
+      $('sheetFields').querySelectorAll('[data-field-key]').forEach(inp => {
         const key = inp.dataset.fieldKey;
         const val = inp.value.trim();
         if (val === '') return;
-        if (inp.dataset.fieldType === 'number') {
-          const n = Number(val);
-          if (!isNaN(n)) lastScanEntry[key] = n;
-        } else {
-          lastScanEntry[key] = val;
-        }
+        if (inp.dataset.fieldType === 'number'){ const n=Number(val); if(!isNaN(n)) lastScanEntry[key]=n; }
+        else lastScanEntry[key] = val;
       });
       saveScans();
       syncToBackend(lastScanEntry);
-      $('lastScanCard').hidden = true;
-      // Refresh list row in-place if list tab is visible
+      _closeSheetUI();
       if (!panels.list.hidden) renderList();
       renderModeBanner();
       lastScanEntry = null;
     }
 
-    function dismissLastScanCard(){
+    function dismissSheet(){
       if (!lastScanEntry) return;
       syncToBackend(lastScanEntry);
-      $('lastScanCard').hidden = true;
+      _closeSheetUI();
       lastScanEntry = null;
     }
 
-    /* ---------- WEBHOOK SYNC ---------- */
+    function _closeSheetUI(){
+      sheetBackdrop.classList.remove('visible');
+      detailSheet.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    $('sheetSave') .addEventListener('click', () => closeSheet(true));
+    $('sheetSkip') .addEventListener('click', () => closeSheet(false));
+    $('sheetClose').addEventListener('click', () => closeSheet(false));
+    sheetBackdrop  .addEventListener('click', () => closeSheet(false));
+
+    /* ---------- WEBHOOK ---------- */
     async function syncToBackend(entry){
       const url = localStorage.getItem(LS_KEY_WEBHOOK);
       if (!url) return;
       try {
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify(entry),
-          keepalive: true  // allows the request to outlive a page navigation/close
-        });
+        const resp = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(entry), keepalive:true});
         const statusEl = $('webhookStatus');
-        if (statusEl) statusEl.textContent = resp.ok
-          ? `${t('webhook_sent')} (${new Date().toLocaleTimeString()})`
-          : `${t('webhook_http_error')} ${resp.status}`;
+        if (statusEl) statusEl.textContent = resp.ok ? `${t('webhook_sent')} (${new Date().toLocaleTimeString()})` : `${t('webhook_http_error')} ${resp.status}`;
       } catch(e) {
         const statusEl = $('webhookStatus');
         if (statusEl) statusEl.textContent = t('webhook_error');
@@ -826,28 +974,18 @@
     function initWebhookConfig(){
       const urlInput = $('webhookUrl');
       if (!urlInput) return;
-      // Always refresh the displayed URL from storage when revisiting the Config tab
       urlInput.value = localStorage.getItem(LS_KEY_WEBHOOK) || '';
-      if (_webhookConfigInit) return;  // attach event listeners only once
+      if (_webhookConfigInit) return;
       _webhookConfigInit = true;
       $('saveWebhookBtn').addEventListener('click', () => {
         const val = urlInput.value.trim();
-        if (val) localStorage.setItem(LS_KEY_WEBHOOK, val);
-        else localStorage.removeItem(LS_KEY_WEBHOOK);
+        if (val) localStorage.setItem(LS_KEY_WEBHOOK, val); else localStorage.removeItem(LS_KEY_WEBHOOK);
         $('webhookStatus').textContent = val ? t('webhook_saved') : t('webhook_disabled');
       });
       $('testWebhookBtn').addEventListener('click', async () => {
         const url = urlInput.value.trim();
-        if (!url) { $('webhookStatus').textContent = t('webhook_enter_url'); return; }
-        const testEntry = {
-          id: 'test-' + Date.now(),
-          code: 'TEST-123',
-          format: 'QR_CODE',
-          mode: currentMode,
-          qty: 1,
-          notes: 'Webhook-Test',
-          ts: Date.now()
-        };
+        if (!url){ $('webhookStatus').textContent = t('webhook_enter_url'); return; }
+        const testEntry = {id:'test-'+Date.now(), code:'TEST-123', format:'QR_CODE', mode:currentMode, qty:1, notes:'Webhook-Test', ts:Date.now()};
         $('webhookStatus').textContent = t('webhook_sending');
         try {
           const resp = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(testEntry)});
@@ -858,50 +996,55 @@
       });
     }
 
-    /* ---------- AUDIO FEEDBACK ---------- */
+    /* ---------- AUDIO ---------- */
     const audioCtx = (window.AudioContext||window.webkitAudioContext) ? new (window.AudioContext||window.webkitAudioContext)() : null;
     function beep(ms=80, freq=880){
-      if(!audioCtx || !beepOnEl.checked) return;
+      if (!audioCtx || !beepOnEl.checked) return;
       try{
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
+        const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
         o.connect(g); g.connect(audioCtx.destination);
-        o.frequency.value = freq; o.type='square';
-        g.gain.value = 0.08;
-        o.start(); setTimeout(()=>{ try{o.stop();}catch{} }, ms);
+        o.frequency.value = freq; o.type = 'square'; g.gain.value = 0.08;
+        o.start(); setTimeout(() => { try{o.stop();}catch{} }, ms);
       }catch{}
       navigator.vibrate?.(40);
     }
 
+    /* ---------- FLASH ---------- */
+    function triggerFlash(){
+      const el = $('scanFlash');
+      if (!el) return;
+      el.classList.remove('active');
+      void el.offsetWidth;
+      el.classList.add('active');
+    }
+
     /* ---------- GEO ---------- */
     function startGeoWatch(){
-      if (geoWatchId!=null) return;
+      if (geoWatchId != null) return;
       if (!trackLocationEl.checked || !navigator.geolocation) return;
       geoWatchId = navigator.geolocation.watchPosition(
-        pos => { lastCoords = {lat: pos.coords.latitude, lon: pos.coords.longitude}; },
+        pos  => { lastCoords = {lat:pos.coords.latitude, lon:pos.coords.longitude}; },
         _err => { lastCoords = null; },
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 8000 }
+        {enableHighAccuracy:true, maximumAge:5000, timeout:8000}
       );
     }
     function stopGeoWatch(){
-      if (geoWatchId!=null) { navigator.geolocation.clearWatch(geoWatchId); }
+      if (geoWatchId != null){ navigator.geolocation.clearWatch(geoWatchId); }
       geoWatchId = null; lastCoords = null;
     }
 
     /* ---------- TORCH ---------- */
     function setupTorch(track){
-      const cap = track?.getCapabilities?.()||{};
-      if (!('torch' in cap)){ disableTorch(); supportNote.textContent = t('torch_unavailable'); return; }
-      torchTrack=track; torchBtn.disabled=false;
-      torchBtn.textContent=t('torch_off'); torchBtn.setAttribute('aria-pressed','false'); torchBtn.setAttribute('aria-label',t('torch_title'));
-      supportNote.textContent = t('torch_available');
-      torchBtn.onclick=async()=>{
-        try {
-          torchOn = torchBtn.getAttribute('aria-pressed')!=='true';
+      const cap = track?.getCapabilities?.() || {};
+      if (!('torch' in cap)){ disableTorch(); return; }
+      torchTrack = track; torchBtn.disabled = false;
+      torchBtn.textContent = '🔦'; torchBtn.setAttribute('aria-pressed','false');
+      torchBtn.onclick = async () => {
+        try{
+          torchOn = torchBtn.getAttribute('aria-pressed') !== 'true';
           await torchTrack.applyConstraints({advanced:[{torch:torchOn}]});
-          torchBtn.setAttribute('aria-pressed',torchOn?'true':'false');
-          torchBtn.textContent=torchOn?t('torch_on'):t('torch_off'); torchBtn.setAttribute('aria-label',t('torch_title'));
-        }catch(e){ console.debug('Torch toggle failed',e); }
+          torchBtn.setAttribute('aria-pressed', torchOn ? 'true' : 'false');
+        }catch(e){ console.debug('Torch toggle failed', e); }
       };
     }
     function disableTorch(){ torchTrack=null; torchBtn.disabled=true; torchBtn.textContent='🔦'; torchBtn.onclick=null; }
@@ -910,119 +1053,90 @@
     function createReader(){
       hints = buildHints();
       const r = new BrowserMultiFormatReader(hints);
-      // Manche Builds brauchen setHints separat:
       try{ r.setHints?.(hints); }catch{}
       return r;
     }
 
     async function start(){
-      if(running) return;
-      running = true; supportNote.textContent = t('camera_starting');
+      if (running) return;
+      running = true; camStatus.textContent = t('camera_starting');
       reader = createReader();
-
-      const constraints = {
-        audio:false,
-        video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } }
-      };
-
+      const constraints = {audio:false, video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}};
       try {
         await reader.decodeFromConstraints(constraints, video, (result, err) => {
-          // Track/Torch init einmalig
-          if(!torchTrack){
+          if (!torchTrack){
             try{
               const stream = video.srcObject;
-              const t = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
-              if (t) setupTorch(t);
+              const tr = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+              if (tr) setupTorch(tr);
             }catch{}
           }
-
-          if (result) {
+          if (result){
             const text = result.getText ? result.getText() : (result.text || '');
             const fmt  = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.barcodeFormat||'');
-            const now = Date.now();
+            const now  = Date.now();
             if (!text) return;
-            const quickRepeat = (text===lastText) && (now-lastAt)<800;
+            const quickRepeat = (text === lastText) && (now - lastAt) < 800;
             if (quickRepeat) return;
-            lastText=text; lastAt=now;
-
+            lastText = text; lastAt = now;
             if (!allowDuplicatesEl.checked && seen.has(text)) return;
-
             const entry = {
-              id: crypto.randomUUID?.()||now,
+              id: crypto.randomUUID?.() || now,
               code: text,
               format: fmt && BarcodeFormat[fmt] ? formatName(fmt) : (fmt||''),
-              mode: currentMode,
-              ts: now,
+              mode: currentMode, ts: now,
               ...(trackLocationEl.checked && lastCoords ? {lat:lastCoords.lat, lon:lastCoords.lon} : {})
             };
             scans.push(entry); saveScans(); seen.add(text);
-            // UI Update
-            if (!panels.list.hidden) appendRow(entry,true);
+            if (!panels.list.hidden) appendRow(entry, true);
             updateCount(); renderPreview(); renderStats(); renderModeBanner();
-            beep();
-            // Dismiss any open detail card (fire-and-forget webhook for the previous entry)
-            dismissLastScanCard();
-            showLastScanCard(entry);
-
-          } else if (err && !(err instanceof NotFoundException)) {
+            beep(); triggerFlash();
+            if (lastScanEntry) dismissSheet();
+            openSheet(entry);
+          } else if (err && !(err instanceof NotFoundException)){
             console.debug(err);
           }
         });
-
         startBtn.disabled = true; stopBtn.disabled = false;
-        supportNote.textContent = (navigator.share ? t('web_share_available') : '') + t('camera_active');
+        camStatus.textContent = (navigator.share ? t('web_share_available') : '') + t('camera_active');
         startGeoWatch();
-
         document.addEventListener('visibilitychange', visResume, {passive:true});
-      } catch (e) {
-        running=false; supportNote.textContent=''; alert(t('camera_error'));
+      } catch(e){
+        running = false; camStatus.textContent = ''; alert(t('camera_error'));
       }
     }
 
     function visResume(){
-      if(document.visibilityState==='visible'&&running&&video.paused){
-        video.play().catch(()=>{});
-      }
+      if (document.visibilityState === 'visible' && running && video.paused) video.play().catch(()=>{});
     }
 
     function stop(){
-      if(!running) return;
-      running=false;
+      if (!running) return;
+      running = false;
       try{ reader?.reset?.(); }catch{}
-      reader=null;
-      const stream=video.srcObject;
-      if(stream){ stream.getTracks().forEach(t=>t.stop()); video.srcObject=null; }
+      reader = null;
+      const stream = video.srcObject;
+      if (stream){ stream.getTracks().forEach(tr => tr.stop()); video.srcObject = null; }
       disableTorch();
-      stopBtn.disabled=true; startBtn.disabled=false;
-      supportNote.textContent='';
+      stopBtn.disabled = true; startBtn.disabled = false;
+      camStatus.textContent = '';
       document.removeEventListener('visibilitychange', visResume);
       stopGeoWatch();
     }
 
-    /* ---------- EXPORT / PREVIEW / STATS ---------- */
+    /* ---------- EXPORT ---------- */
     function toCsv(rows){
       const header = ['code','format','mode','qty','shelf','recipient','reference','work_type','technician','status','notes','timestamp','iso','lat','lon'];
-      const lines = [header.join(',')];
+      const lines  = [header.join(',')];
       for (const r of rows){
         const iso = new Date(r.ts).toISOString();
-        const cells = [
-          csvEscape(r.code),
-          csvEscape(r.format||''),
-          csvEscape(r.mode||DEFAULT_MODE),
-          r.qty!=null ? r.qty : '',
-          csvEscape(r.shelf||''),
-          csvEscape(r.recipient||''),
-          csvEscape(r.reference||''),
-          csvEscape(r.workType||''),
-          csvEscape(r.technician||''),
-          csvEscape(r.status||''),
-          csvEscape(r.notes||''),
-          csvEscape(fmtTime(r.ts)),
-          csvEscape(iso),
-          r.lat!=null ? r.lat : '',
-          r.lon!=null ? r.lon : ''
-        ];
-        lines.push(cells.join(','));
+        lines.push([
+          csvEscape(r.code), csvEscape(r.format||''), csvEscape(r.mode||DEFAULT_MODE),
+          r.qty!=null?r.qty:'', csvEscape(r.shelf||''), csvEscape(r.recipient||''),
+          csvEscape(r.reference||''), csvEscape(r.workType||''), csvEscape(r.technician||''),
+          csvEscape(r.status||''), csvEscape(r.notes||''), csvEscape(fmtTime(r.ts)),
+          csvEscape(iso), r.lat!=null?r.lat:'', r.lon!=null?r.lon:''
+        ].join(','));
       }
       return lines.join('\n');
     }
@@ -1033,10 +1147,9 @@
     }
 
     function renderPreview(){
-      if (!scans.length){ previewCard.innerHTML = `<em>${t('csv_preview_empty')}</em>`; return; }
-      const sample = scans.slice(-10);
-      const csv = toCsv(sample);
-      previewCard.innerHTML = `<pre style="white-space:pre-wrap;margin:0">${escapeHtml(csv)}</pre>`;
+      if (!scans.length){ previewCard.innerHTML=`<em>${t('csv_preview_empty')}</em>`; return; }
+      const csv = toCsv(scans.slice(-10));
+      previewCard.innerHTML = `<pre>${escapeHtml(csv)}</pre>`;
     }
 
     function renderStats(){
@@ -1044,218 +1157,155 @@
       const uniq  = new Set(scans.map(s=>s.code)).size;
       const byFmt = new Map();
       scans.forEach(s => byFmt.set(s.format||'Unbekannt', (byFmt.get(s.format||'Unbekannt')||0)+1));
-      const fmtHtml = [...byFmt.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li>${escapeHtml(k)}: <strong>${v}</strong></li>`).join('');
-      const byMode = new Map();
+      const fmtHtml  = [...byFmt.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li>${escapeHtml(k)}: <strong>${v}</strong></li>`).join('');
+      const byMode   = new Map();
       scans.forEach(s => { const m=s.mode||DEFAULT_MODE; byMode.set(m,(byMode.get(m)||0)+1); });
       const modeHtml = [...byMode.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<li><span class="mode-badge mode-badge-${escapeHtml(k)}">${escapeHtml((MODES[k]?.label)||k)}</span> <strong>${v}</strong></li>`).join('');
-      const last = total ? fmtTime(scans[scans.length-1].ts) : '–';
+      const last     = total ? fmtTime(scans[scans.length-1].ts) : '–';
       statsCard.innerHTML = `
-        <div style="display:flex;gap:18px;flex-wrap:wrap">
-          <div><strong>${t('stats_total')}</strong> ${total}</div>
-          <div><strong>${t('stats_unique')}</strong> ${uniq}</div>
-          <div><strong>${t('stats_last')}</strong> ${last}</div>
+        <div class="stats-row">
+          <div class="stats-kv"><span class="sv">${total}</span><span class="sk">${t('stats_total')}</span></div>
+          <div class="stats-kv"><span class="sv">${uniq}</span><span class="sk">${t('stats_unique')}</span></div>
+          <div class="stats-kv"><span class="sv" style="font-size:14px">${last}</span><span class="sk">${t('stats_last')}</span></div>
         </div>
-        <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
-        <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+        <hr class="divider">
+        <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;margin-top:12px">
           <div><strong>${t('stats_modes_heading')}</strong><ul style="margin:8px 0 0;padding-left:18px">${modeHtml||'<li>–</li>'}</ul></div>
           <div><strong>${t('stats_formats_heading')}</strong><ul style="margin:8px 0 0;padding-left:18px">${fmtHtml||'<li>–</li>'}</ul></div>
-        </div>
-      `;
+        </div>`;
     }
 
     async function exportCsv(){
-      const csv = toCsv(scans);
-      const blob = new Blob([csv], {type:'text/csv'});
-      const url = URL.createObjectURL(blob);
+      const csv=toCsv(scans); const blob=new Blob([csv],{type:'text/csv'});
+      const url=URL.createObjectURL(blob);
       downloadURL(url, `barcodes_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`);
       setTimeout(()=>URL.revokeObjectURL(url), 5000);
     }
 
     async function shareCsv(){
-      const csv = toCsv(scans);
-      const file = new File([csv], 'barcodes.csv', {type:'text/csv'});
-      if (navigator.canShare && navigator.canShare({ files:[file] })) {
-        try{
-          await navigator.share({ title:'Barcodes', text:'Export aus Barcode-Logger', files:[file] });
-          return;
-        }catch(e){ /* abgebrochen */ }
+      const csv=toCsv(scans); const file=new File([csv],'barcodes.csv',{type:'text/csv'});
+      if (navigator.canShare && navigator.canShare({files:[file]})){
+        try{ await navigator.share({title:'Barcodes',text:'Export aus Barcode-Logger',files:[file]}); return; }catch{}
       }
-      // Fallback: Mailto (Body gekürzt) + Download
-      const maxBody = 1800;
-      const body = encodeURIComponent(csv.slice(0,maxBody) + (csv.length>maxBody?'\n…':''));
-      window.location.href = `mailto:?subject=${encodeURIComponent('Barcode-CSV')}&body=${body}`;
-      // parallel Download
-      const blob = new Blob([csv],{type:'text/csv'});
-      const url = URL.createObjectURL(blob);
-      downloadURL(url, 'barcodes.csv');
-      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      const maxBody=1800; const body=encodeURIComponent(csv.slice(0,maxBody)+(csv.length>maxBody?'\n…':''));
+      window.location.href=`mailto:?subject=${encodeURIComponent('Barcode-CSV')}&body=${body}`;
+      const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+      downloadURL(url,'barcodes.csv'); setTimeout(()=>URL.revokeObjectURL(url),5000);
     }
 
     function backupJson(){
-      const json = JSON.stringify(scans, null, 2);
-      const blob = new Blob([json], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      downloadURL(url, `barcode_backup_${new Date().toISOString().slice(0,10)}.json`);
-      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      const json=JSON.stringify(scans,null,2); const blob=new Blob([json],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      downloadURL(url,`barcode_backup_${new Date().toISOString().slice(0,10)}.json`);
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
     }
 
     function restoreJson(){
-      const inp = document.createElement('input');
-      inp.type='file'; inp.accept='application/json';
-      inp.onchange = async () => {
-        const f = inp.files?.[0]; if(!f) return;
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json';
+      inp.onchange=async()=>{
+        const f=inp.files?.[0]; if(!f) return;
         try{
-          const text = await f.text();
-          const data = JSON.parse(text);
-          if (!Array.isArray(data)) throw new Error(t('invalid_format'));
-          // Merge (einfach anhängen; Duplikate möglich je nach Einstellung)
-          scans = data.map(x => ({
-            id: x.id || crypto.randomUUID?.(),
-            code: String(x.code||''),
-            format: x.format||'',
-            mode: x.mode||DEFAULT_MODE,
-            ts: Number(x.ts)||Date.now(),
-            ...(x.lat!=null && x.lon!=null ? {lat:Number(x.lat), lon:Number(x.lon)} : {}),
-            ...(x.qty!=null      ? {qty:Number(x.qty)}           : {}),
-            ...(x.shelf          ? {shelf:String(x.shelf)}        : {}),
-            ...(x.recipient      ? {recipient:String(x.recipient)}: {}),
-            ...(x.reference      ? {reference:String(x.reference)}: {}),
-            ...(x.workType       ? {workType:String(x.workType)}  : {}),
-            ...(x.technician     ? {technician:String(x.technician)}: {}),
-            ...(x.status         ? {status:String(x.status)}     : {}),
-            ...(x.notes          ? {notes:String(x.notes)}       : {})
+          const text=await f.text(); const data=JSON.parse(text);
+          if(!Array.isArray(data)) throw new Error(t('invalid_format'));
+          scans=data.map(x=>({
+            id:x.id||crypto.randomUUID?.(), code:String(x.code||''), format:x.format||'',
+            mode:x.mode||DEFAULT_MODE, ts:Number(x.ts)||Date.now(),
+            ...(x.lat!=null&&x.lon!=null?{lat:Number(x.lat),lon:Number(x.lon)}:{}),
+            ...(x.qty!=null?{qty:Number(x.qty)}:{}),
+            ...(x.shelf?{shelf:String(x.shelf)}:{}),
+            ...(x.recipient?{recipient:String(x.recipient)}:{}),
+            ...(x.reference?{reference:String(x.reference)}:{}),
+            ...(x.workType?{workType:String(x.workType)}:{}),
+            ...(x.technician?{technician:String(x.technician)}:{}),
+            ...(x.status?{status:String(x.status)}:{}),
+            ...(x.notes?{notes:String(x.notes)}:{})
           }));
-          saveScans();
-          seen = new Set(scans.map(s=>s.code));
+          saveScans(); seen=new Set(scans.map(s=>s.code));
           renderList(); renderPreview(); renderStats(); updateCount();
           alert(t('backup_restored'));
-        }catch(e){ alert(t('backup_failed')); }
+        }catch{ alert(t('backup_failed')); }
       };
       inp.click();
     }
 
     function clearAll(){
       if (!confirm(t('confirm_clear_all'))) return;
-      scans = []; saveScans(); scanList.innerHTML=''; seen.clear();
+      scans=[]; saveScans(); scanList.innerHTML=''; seen.clear();
       renderPreview(); renderStats(); updateCount();
     }
 
     function downloadURL(url, filename){
-      const a = document.createElement('a');
-      a.href=url; a.download=filename; a.style.display='none';
+      const a=document.createElement('a'); a.href=url; a.download=filename; a.style.display='none';
       document.body.appendChild(a); a.click(); a.remove();
     }
 
-    /* ---------- FORMATE UI ---------- */
+    /* ---------- FORMATS ---------- */
     function formatName(fmtVal){
-      // fmtVal kann Zahl sein – zurück zu KEY
-      if (typeof fmtVal==='number'){
-        const key = Object.keys(BarcodeFormat).find(k => BarcodeFormat[k]===fmtVal);
-        return key || String(fmtVal);
-      }
+      if (typeof fmtVal==='number'){ const key=Object.keys(BarcodeFormat).find(k=>BarcodeFormat[k]===fmtVal); return key||String(fmtVal); }
       return String(fmtVal);
     }
 
     function renderFormatsUI(){
       supportedFormatsEl.textContent = selectedFormats.join(', ');
       fmtGrid.innerHTML = '';
-      ALL_FORMAT_KEYS.forEach(key=>{
-        const id = 'fmt_'+key;
-        const wrap = document.createElement('label');
-        wrap.className = 'fmt-item';
-        wrap.innerHTML = `
-          <input type="checkbox" id="${id}" ${selectedFormats.includes(key)?'checked':''}>
-          <span>${key.replace('_',' ')}</span>`;
+      ALL_FORMAT_KEYS.forEach(key => {
+        const id=`fmt_${key}`; const wrap=document.createElement('label');
+        wrap.className='fmt-item';
+        wrap.innerHTML=`<input type="checkbox" id="${id}" ${selectedFormats.includes(key)?'checked':''}><span>${key.replace('_',' ')}</span>`;
         fmtGrid.appendChild(wrap);
       });
-
-      selectAllBtn.onclick = ()=>{ setAllFmt(true); };
-      selectNoneBtn.onclick= ()=>{ setAllFmt(false); };
-      applyFormatsBtn.onclick = ()=>applyFormats();
+      selectAllBtn .onclick = () => setAllFmt(true);
+      selectNoneBtn.onclick = () => setAllFmt(false);
+      applyFormatsBtn.onclick = () => applyFormats();
     }
-
-    function setAllFmt(val){
-      fmtGrid.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=val);
-    }
-
+    function setAllFmt(val){ fmtGrid.querySelectorAll('input[type="checkbox"]').forEach(cb=>cb.checked=val); }
     function applyFormats(){
-      const picked = [...fmtGrid.querySelectorAll('input[type="checkbox"]')]
-        .filter(cb=>cb.checked).map(cb=>cb.id.replace('fmt_',''));
-      selectedFormats = picked.length ? picked : [];
+      const picked=[...fmtGrid.querySelectorAll('input[type="checkbox"]')].filter(cb=>cb.checked).map(cb=>cb.id.replace('fmt_',''));
+      selectedFormats=picked.length?picked:[];
       saveSelectedFormats();
-      supportedFormatsEl.textContent = selectedFormats.join(', ') || 'Alle';
-      // Reader neu mit Hints
-      const wasRunning = running;
-      if (wasRunning) stop();
-      hints = buildHints();
-      if (wasRunning) start();
+      supportedFormatsEl.textContent=selectedFormats.join(', ')||'Alle';
+      const wasRunning=running;
+      if(wasRunning) stop();
+      hints=buildHints();
+      if(wasRunning) start();
       alert(t('formats_applied'));
     }
 
-    /* ---------- FILTER ---------- */
+    /* ---------- EVENTS ---------- */
     filterInput.addEventListener('input', renderList);
     $('filterMode').addEventListener('change', renderList);
-
-    /* ---------- EVENTS ---------- */
-    startBtn.addEventListener('click', start);
-    stopBtn .addEventListener('click', stop);
-
-    exportCsvBtn.addEventListener('click', exportCsv);
-    shareCsvBtn .addEventListener('click', shareCsv);
+    startBtn   .addEventListener('click', start);
+    stopBtn    .addEventListener('click', stop);
+    exportCsvBtn .addEventListener('click', exportCsv);
+    shareCsvBtn  .addEventListener('click', shareCsv);
     backupJsonBtn.addEventListener('click', backupJson);
     restoreJsonBtn.addEventListener('click', restoreJson);
     clearAllBtn  .addEventListener('click', clearAll);
-
-    trackLocationEl.addEventListener('change', ()=>{
-      if (trackLocationEl.checked) startGeoWatch(); else stopGeoWatch();
+    trackLocationEl.addEventListener('change', () => { if(trackLocationEl.checked) startGeoWatch(); else stopGeoWatch(); });
+    clearBtn.addEventListener('click', () => {
+      dismissSheet();
+      scans=[]; saveScans(); renderList(); renderPreview(); renderStats(); seen.clear();
     });
-
-    $('lastScanSave').addEventListener('click', saveLastScanDetails);
-    $('lastScanClose').addEventListener('click', dismissLastScanCard);
-    clearBtn.addEventListener('click', ()=>{ dismissLastScanCard(); scans=[]; saveScans(); renderList(); renderPreview(); renderStats(); seen.clear(); });
 
     /* ---------- LANG ---------- */
     function initLang(){
-      const dBtn = $('lang-de');
-      const eBtn = $('lang-en');
-      if (!dBtn || !eBtn) return;
+      const dBtn=$('lang-de'); const eBtn=$('lang-en');
+      if(!dBtn||!eBtn) return;
       function updateBtns(){
         dBtn.setAttribute('aria-pressed', String(currentLang==='de'));
         eBtn.setAttribute('aria-pressed', String(currentLang==='en'));
       }
       updateBtns();
-      dBtn.addEventListener('click', ()=>{
-        currentLang = 'de';
-        localStorage.setItem(LS_KEY_LANG, 'de');
-        document.documentElement.lang = 'de';
-        updateBtns();
-        applyTranslations();
-      });
-      eBtn.addEventListener('click', ()=>{
-        currentLang = 'en';
-        localStorage.setItem(LS_KEY_LANG, 'en');
-        document.documentElement.lang = 'en';
-        updateBtns();
-        applyTranslations();
-      });
+      dBtn.addEventListener('click', ()=>{ currentLang='de'; localStorage.setItem(LS_KEY_LANG,'de'); document.documentElement.lang='de'; updateBtns(); applyTranslations(); });
+      eBtn.addEventListener('click', ()=>{ currentLang='en'; localStorage.setItem(LS_KEY_LANG,'en'); document.documentElement.lang='en'; updateBtns(); applyTranslations(); });
     }
 
     function applyTranslations(){
-      document.querySelectorAll('[data-i18n]').forEach(el => {
-        el.textContent = t(el.dataset.i18n);
-      });
-      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-        el.placeholder = t(el.dataset.i18nPlaceholder);
-      });
-      document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
-        el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel));
-      });
-      document.querySelectorAll('[data-i18n-title]').forEach(el => {
-        el.title = t(el.dataset.i18nTitle);
-      });
-      document.querySelectorAll('[data-i18n-mode-label]').forEach(el => {
-        el.textContent = t('mode_' + el.dataset.i18nModeLabel);
-      });
+      document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent=t(el.dataset.i18n); });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{ el.placeholder=t(el.dataset.i18nPlaceholder); });
+      document.querySelectorAll('[data-i18n-aria-label]').forEach(el=>{ el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel)); });
+      document.querySelectorAll('[data-i18n-title]').forEach(el=>{ el.title=t(el.dataset.i18nTitle); });
+      document.querySelectorAll('[data-i18n-mode-label]').forEach(el=>{ el.textContent=t('mode_'+el.dataset.i18nModeLabel); });
       renderModeBanner(); renderList(); renderStats(); renderPreview();
     }
 
@@ -1264,10 +1314,11 @@
       renderList(); renderPreview(); renderStats(); updateCount(); renderModeBanner();
       initWebhookConfig();
       initLang(); applyTranslations();
-      // Auto-Start sanft versuchen; auf Mobilgeräten ist ggf. ein Tap nötig
+      // Auto-Start; auf Mobilgeräten ist ggf. ein Tap nötig
       try{ start(); }catch{}
     })();
   })();
   </script>
 </body>
 </html>
+
