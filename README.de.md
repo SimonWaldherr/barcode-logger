@@ -165,6 +165,26 @@ Die Anfrage verwendet `keepalive: true`, damit sie abgeschlossen werden kann, au
 
 Lassen Sie das URL-Feld leer und drücken Sie **Speichern**, um den Webhook zu deaktivieren.
 
+### Einsatzbereite Backend-Beispiele
+
+Der Ordner `backend/` enthält minimale, abhängigkeitsfreie Server-Implementierungen:
+
+| Datei | Sprache | Startbefehl |
+|-------|---------|-------------|
+| `backend/sync.php` | PHP 7.4+ | Auf einem PHP-fähigen Webserver bereitstellen (Apache, Nginx + php-fpm). Endpunkt: `https://ihr-server/backend/sync.php` |
+| `backend/sync.py` | Python 3.7+ (nur stdlib) | `python3 backend/sync.py --port 8080` → Endpunkt `http://localhost:8080/scan` |
+| `backend/sync.go` | Go 1.18+ | `go run backend/sync.go -addr :8080` → Endpunkt `http://localhost:8080/scan` |
+
+Alle drei Backends:
+- Akzeptieren HTTP POST mit `Content-Type: application/json`
+- Prüfen, dass das Pflichtfeld `code` vorhanden ist
+- Hängen jeden Eintrag als newline-delimitiertes JSON an `scans.ndjson` an
+- Antworten mit `{"ok": true, "code": "...", "received_at": "..."}` bei Erfolg
+- Setzen permissive CORS-Header (für Produktion anpassen)
+- Behandeln OPTIONS-Preflight-Anfragen
+
+Für Produktionsumgebungen: Authentifizierung hinzufügen (z. B. ein gemeinsames Geheimnis im `Authorization`-Header) und hinter einem TLS-terminierenden Reverse-Proxy (nginx / caddy) betreiben.
+
 ---
 
 ## Konfiguration

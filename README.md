@@ -165,6 +165,26 @@ The request uses `keepalive: true` so it can complete even if the user navigates
 
 Leave the URL field empty and press **Save** to disable the webhook.
 
+### Ready-to-use Backend Examples
+
+The `backend/` directory contains minimal, dependency-free server implementations:
+
+| File | Language | Run command |
+|------|----------|-------------|
+| `backend/sync.php` | PHP 7.4+ | Deploy to any PHP-enabled web server (Apache, Nginx + php-fpm). Endpoint: `https://your-host/backend/sync.php` |
+| `backend/sync.py` | Python 3.7+ (stdlib only) | `python3 backend/sync.py --port 8080` → endpoint `http://localhost:8080/scan` |
+| `backend/sync.go` | Go 1.18+ | `go run backend/sync.go -addr :8080` → endpoint `http://localhost:8080/scan` |
+
+All three backends:
+- Accept HTTP POST with `Content-Type: application/json`
+- Validate that the required `code` field is present
+- Append each entry as a newline-delimited JSON line to `scans.ndjson`
+- Respond with `{"ok": true, "code": "...", "received_at": "..."}` on success
+- Set permissive CORS headers (adjust for production)
+- Handle OPTIONS pre-flight requests
+
+For production deployments, add authentication (e.g. a shared secret in the `Authorization` header) and run behind a TLS-terminating reverse proxy.
+
 ---
 
 ## Configuration
